@@ -113,60 +113,60 @@ func readHeaderFromFile(headerFile string) http.Header {
 	"Cookie":""
 }
 */
-func (this *Request) AddHeaderFile(headerFile string) *Request {
+func (self *Request) AddHeaderFile(headerFile string) *Request {
 	_, err := os.Stat(headerFile)
 	if err != nil {
-		return this
+		return self
 	}
 	h := readHeaderFromFile(headerFile)
-	this.Header = h
-	return this
+	self.Header = h
+	return self
 }
 
 // @host  http://localhost:8765/
-func (this *Request) AddProxyHost(host string) *Request {
-	this.ProxyHost = host
-	return this
+func (self *Request) AddProxyHost(host string) *Request {
+	self.ProxyHost = host
+	return self
 }
 
-func (this *Request) GetUrl() string {
-	return this.Url
+func (self *Request) GetUrl() string {
+	return self.Url
 }
 
-func (this *Request) GetUrlTag() string {
-	return this.Urltag
+func (self *Request) GetUrlTag() string {
+	return self.Urltag
 }
 
-func (this *Request) GetMethod() string {
-	return this.Method
+func (self *Request) GetMethod() string {
+	return self.Method
 }
 
-func (this *Request) GetPostdata() string {
-	return this.Postdata
+func (self *Request) GetPostdata() string {
+	return self.Postdata
 }
 
-func (this *Request) GetHeader() http.Header {
-	return this.Header
+func (self *Request) GetHeader() http.Header {
+	return self.Header
 }
 
-func (this *Request) GetCookies() []*http.Cookie {
-	return this.Cookies
+func (self *Request) GetCookies() []*http.Cookie {
+	return self.Cookies
 }
 
-func (this *Request) GetProxyHost() string {
-	return this.ProxyHost
+func (self *Request) GetProxyHost() string {
+	return self.ProxyHost
 }
 
-func (this *Request) GetResponceType() string {
-	return this.RespType
+func (self *Request) GetResponceType() string {
+	return self.RespType
 }
 
-func (this *Request) GetRedirectFunc() func(req *http.Request, via []*http.Request) error {
-	return this.checkRedirect
+func (self *Request) GetRedirectFunc() func(req *http.Request, via []*http.Request) error {
+	return self.checkRedirect
 }
 
-func (this *Request) GetMeta() interface{} {
-	return this.Meta
+func (self *Request) GetMeta() interface{} {
+	return self.Meta
 }
 
 // PageItems represents an entity save result parsed by PageProcesser and will be output at last.
@@ -191,35 +191,35 @@ func NewPageItems(req *Request) *PageItems {
 }
 
 // GetRequest returns request of PageItems
-func (this *PageItems) GetRequest() *Request {
-	return this.req
+func (self *PageItems) GetRequest() *Request {
+	return self.req
 }
 
 // AddItem saves a KV result into PageItems.
-func (this *PageItems) AddItem(key string, item string) {
-	this.items[key] = item
+func (self *PageItems) AddItem(key string, item string) {
+	self.items[key] = item
 }
 
 // GetItem returns value of the key.
-func (this *PageItems) GetItem(key string) (string, bool) {
-	t, ok := this.items[key]
+func (self *PageItems) GetItem(key string) (string, bool) {
+	t, ok := self.items[key]
 	return t, ok
 }
 
 // GetAll returns all the KVs result.
-func (this *PageItems) GetAll() map[string]string {
-	return this.items
+func (self *PageItems) GetAll() map[string]string {
+	return self.items
 }
 
-// SetSkip set skip true to make this page not to be processed by Pipeline.
-func (this *PageItems) SetSkip(skip bool) *PageItems {
-	this.skip = skip
-	return this
+// SetSkip set skip true to make self page not to be processed by Pipeline.
+func (self *PageItems) SetSkip(skip bool) *PageItems {
+	self.skip = skip
+	return self
 }
 
 // GetSkip returns skip label.
-func (this *PageItems) GetSkip() bool {
-	return this.skip
+func (self *PageItems) GetSkip() bool {
+	return self.skip
 }
 
 // Page represents an entity be crawled.
@@ -257,111 +257,111 @@ func NewPage(req *Request) *Page {
 }
 
 // SetStatus save status info about download process.
-func (this *Page) SetStatus(isfail bool, errormsg string) {
-	this.isfail = isfail
-	this.errormsg = errormsg
+func (self *Page) SetStatus(isfail bool, errormsg string) {
+	self.isfail = isfail
+	self.errormsg = errormsg
 }
 
 // SetHeader save the header of http responce
-func (this *Page) SetHeader(header http.Header) {
-	this.header = header
+func (self *Page) SetHeader(header http.Header) {
+	self.header = header
 }
 
 // GetHeader returns the header of http responce
-func (this *Page) GetHeader() http.Header {
-	return this.header
+func (self *Page) GetHeader() http.Header {
+	return self.header
 }
 
 // SetHeader save the cookies of http responce
-func (this *Page) SetCookies(cookies []*http.Cookie) {
-	this.cookies = cookies
+func (self *Page) SetCookies(cookies []*http.Cookie) {
+	self.cookies = cookies
 }
 
 // GetHeader returns the cookies of http responce
-func (this *Page) GetCookies() []*http.Cookie {
-	return this.cookies
+func (self *Page) GetCookies() []*http.Cookie {
+	return self.cookies
 }
 
 // IsSucc test whether download process success or not.
-func (this *Page) IsSucc() bool {
-	return !this.isfail
+func (self *Page) IsSucc() bool {
+	return !self.isfail
 }
 
 // Errormsg show the download error message.
-func (this *Page) Errormsg() string {
-	return this.errormsg
+func (self *Page) Errormsg() string {
+	return self.errormsg
 }
 
 // AddField saves KV string pair to PageItems preparing for Pipeline
-func (this *Page) AddField(key string, value string) {
-	this.pItems.AddItem(key, value)
+func (self *Page) AddField(key string, value string) {
+	self.pItems.AddItem(key, value)
 }
 
 // GetPageItems returns PageItems object that record KV pair parsed in PageProcesser.
-func (this *Page) GetPageItems() *PageItems {
-	return this.pItems
+func (self *Page) GetPageItems() *PageItems {
+	return self.pItems
 }
 
 // SetSkip set label "skip" of PageItems.
 // PageItems will not be saved in Pipeline wher skip is set true
-func (this *Page) SetSkip(skip bool) {
-	this.pItems.SetSkip(skip)
+func (self *Page) SetSkip(skip bool) {
+	self.pItems.SetSkip(skip)
 }
 
 // GetSkip returns skip label of PageItems.
-func (this *Page) GetSkip() bool {
-	return this.pItems.GetSkip()
+func (self *Page) GetSkip() bool {
+	return self.pItems.GetSkip()
 }
 
-// SetRequest saves request oject of this page.
-func (this *Page) SetRequest(r *Request) *Page {
-	this.req = r
-	return this
+// SetRequest saves request oject of self page.
+func (self *Page) SetRequest(r *Request) *Page {
+	self.req = r
+	return self
 }
 
-// GetRequest returns request oject of this page.
-func (this *Page) GetRequest() *Request {
-	return this.req
+// GetRequest returns request oject of self page.
+func (self *Page) GetRequest() *Request {
+	return self.req
 }
 
 // GetUrlTag returns name of url.
-func (this *Page) GetUrlTag() string {
-	return this.req.GetUrlTag()
+func (self *Page) GetUrlTag() string {
+	return self.req.GetUrlTag()
 }
 
 // AddTargetRequest adds one new Request waitting for crawl.
-func (this *Page) AddTargetRequest(url string, respType string) *Page {
-	this.targetRequests = append(this.targetRequests, NewRequest(url, respType, "", "GET", "", nil, nil, nil, nil))
-	return this
+func (self *Page) AddTargetRequest(url string, respType string) *Page {
+	self.targetRequests = append(self.targetRequests, NewRequest(url, respType, "", "GET", "", nil, nil, nil, nil))
+	return self
 }
 
 // AddTargetRequests adds new Requests waitting for crawl.
-func (this *Page) AddTargetRequests(urls []string, respType string) *Page {
+func (self *Page) AddTargetRequests(urls []string, respType string) *Page {
 	for _, url := range urls {
-		this.AddTargetRequest(url, respType)
+		self.AddTargetRequest(url, respType)
 	}
-	return this
+	return self
 }
 
 // AddTargetRequestWithProxy adds one new Request waitting for crawl.
-func (this *Page) AddTargetRequestWithProxy(url string, respType string, proxyHost string) *Page {
+func (self *Page) AddTargetRequestWithProxy(url string, respType string, proxyHost string) *Page {
 
-	this.targetRequests = append(this.targetRequests, NewRequestWithProxy(url, respType, "", "GET", "", nil, nil, proxyHost, nil, nil))
-	return this
+	self.targetRequests = append(self.targetRequests, NewRequestWithProxy(url, respType, "", "GET", "", nil, nil, proxyHost, nil, nil))
+	return self
 }
 
 // AddTargetRequestsWithProxy adds new Requests waitting for crawl.
-func (this *Page) AddTargetRequestsWithProxy(urls []string, respType string, proxyHost string) *Page {
+func (self *Page) AddTargetRequestsWithProxy(urls []string, respType string, proxyHost string) *Page {
 	for _, url := range urls {
-		this.AddTargetRequestWithProxy(url, respType, proxyHost)
+		self.AddTargetRequestWithProxy(url, respType, proxyHost)
 	}
-	return this
+	return self
 }
 
 // AddTargetRequest adds one new Request with header file for waitting for crawl.
-func (this *Page) AddTargetRequestWithHeaderFile(url string, respType string, headerFile string) *Page {
-	this.targetRequests = append(this.targetRequests, NewRequestWithHeaderFile(url, respType, headerFile))
-	return this
+func (self *Page) AddTargetRequestWithHeaderFile(url string, respType string, headerFile string) *Page {
+	self.targetRequests = append(self.targetRequests, NewRequestWithHeaderFile(url, respType, headerFile))
+	return self
 }
 
 // AddTargetRequest adds one new Request waitting for crawl.
@@ -371,65 +371,65 @@ func (this *Page) AddTargetRequestWithHeaderFile(url string, respType string, he
 // The postdata is http body string.
 // The header is http header.
 // The cookies is http cookies.
-func (this *Page) AddTargetRequestWithParams(req *Request) *Page {
-	this.targetRequests = append(this.targetRequests, req)
-	return this
+func (self *Page) AddTargetRequestWithParams(req *Request) *Page {
+	self.targetRequests = append(self.targetRequests, req)
+	return self
 }
 
 // AddTargetRequests adds new Requests waitting for crawl.
-func (this *Page) AddTargetRequestsWithParams(reqs []*Request) *Page {
+func (self *Page) AddTargetRequestsWithParams(reqs []*Request) *Page {
 	for _, req := range reqs {
-		this.AddTargetRequestWithParams(req)
+		self.AddTargetRequestWithParams(req)
 	}
-	return this
+	return self
 }
 
 // GetTargetRequests returns the target requests that will put into Scheduler
-func (this *Page) GetTargetRequests() []*Request {
-	return this.targetRequests
+func (self *Page) GetTargetRequests() []*Request {
+	return self.targetRequests
 }
 
 // SetBodyStr saves plain string crawled in Page.
-func (this *Page) SetBodyStr(body string) *Page {
-	this.body = body
-	return this
+func (self *Page) SetBodyStr(body string) *Page {
+	self.body = body
+	return self
 }
 
 // GetBodyStr returns plain string crawled.
-func (this *Page) GetBodyStr() string {
-	return this.body
+func (self *Page) GetBodyStr() string {
+	return self.body
 }
 
 // SetHtmlParser saves goquery object binded to target crawl result.
-func (this *Page) SetHtmlParser(doc *goquery.Document) *Page {
-	this.docParser = doc
-	return this
+func (self *Page) SetHtmlParser(doc *goquery.Document) *Page {
+	self.docParser = doc
+	return self
 }
 
 // GetHtmlParser returns goquery object binded to target crawl result.
-func (this *Page) GetHtmlParser() *goquery.Document {
-	return this.docParser
+func (self *Page) GetHtmlParser() *goquery.Document {
+	return self.docParser
 }
 
 // GetHtmlParser returns goquery object binded to target crawl result.
-func (this *Page) ResetHtmlParser() *goquery.Document {
-	r := strings.NewReader(this.body)
+func (self *Page) ResetHtmlParser() *goquery.Document {
+	r := strings.NewReader(self.body)
 	var err error
-	this.docParser, err = goquery.NewDocumentFromReader(r)
+	self.docParser, err = goquery.NewDocumentFromReader(r)
 	if err != nil {
 		mlog.LogInst().LogError(err.Error())
 		panic(err.Error())
 	}
-	return this.docParser
+	return self.docParser
 }
 
 // SetJson saves json result.
-func (this *Page) SetJson(js *simplejson.Json) *Page {
-	this.jsonMap = js
-	return this
+func (self *Page) SetJson(js *simplejson.Json) *Page {
+	self.jsonMap = js
+	return self
 }
 
 // SetJson returns json result.
-func (this *Page) GetJson() *simplejson.Json {
-	return this.jsonMap
+func (self *Page) GetJson() *simplejson.Json {
+	return self.jsonMap
 }

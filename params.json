@@ -1,0 +1,1 @@
+{"name":"Robot","tagline":"Golang轻量级分布式爬虫框架","body":"# robot\r\nGolang爬虫框架。\r\n\r\n##robot分四个接口：\r\n* 下载模块(Downloader)\r\n* 页面处理模块(PageProcesser)\r\n* 任务调度模块(Scheduler)\r\n* pipline\r\n\r\n其中下载模块，调度模块已经实现，需要开发者自行实现页面处理规则与pipline\r\n","google":"","note":"Don't delete this file! It's used internally to help with page regeneration."}

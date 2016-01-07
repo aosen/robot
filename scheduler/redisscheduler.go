@@ -9,7 +9,6 @@ package scheduler
 
 import (
 	"encoding/json"
-	"sync"
 
 	"github.com/aosen/mlog"
 	"github.com/aosen/robot"
@@ -17,7 +16,6 @@ import (
 )
 
 type RedisScheduler struct {
-	locker                *sync.Mutex
 	requestList           string
 	urlList               string
 	redisAddr             string
@@ -44,7 +42,6 @@ func NewRedisScheduler(addr string, maxConn, maxIdle int, forbiddenDuplicateUrl 
 func (this *RedisScheduler) Init() *RedisScheduler {
 	this.redisPool = redis.NewPool(this.newConn, this.maxIdle)
 	this.redisPool.MaxActive = this.maxConn
-	this.locker = new(sync.Mutex)
 	return this
 }
 
@@ -57,9 +54,6 @@ func (this *RedisScheduler) newConn() (c redis.Conn, err error) {
 }
 
 func (this *RedisScheduler) Push(requ *robot.Request) {
-	this.locker.Lock()
-	defer this.locker.Unlock()
-
 	requJson, err := json.Marshal(requ)
 	if err != nil {
 		mlog.LogInst().LogError("RedisScheduler Push Error: " + err.Error())
@@ -106,9 +100,6 @@ func (this *RedisScheduler) Push(requ *robot.Request) {
 }
 
 func (this *RedisScheduler) Poll() *robot.Request {
-	this.locker.Lock()
-	defer this.locker.Unlock()
-
 	conn := this.redisPool.Get()
 	defer conn.Close()
 
@@ -138,8 +129,6 @@ func (this *RedisScheduler) Poll() *robot.Request {
 }
 
 func (this *RedisScheduler) Count() int {
-	this.locker.Lock()
-	defer this.locker.Unlock()
 	var length int
 	var err error
 

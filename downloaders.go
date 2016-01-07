@@ -105,6 +105,7 @@ func connectByHttpProxy(p *Page, in_req *Request) (*http.Response, error) {
 }
 
 // Charset auto determine. Use golang.org/x/net/html/charset. Get page body and change it to utf-8
+// 自动转码
 func (this *HttpDownloader) changeCharsetEncodingAuto(contentTypeStr string, sor io.ReadCloser) string {
 	var err error
 	destReader, err := charset.NewReader(sor, contentTypeStr)

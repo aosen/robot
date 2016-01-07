@@ -29,10 +29,7 @@ type Spider struct {
 
 	pipelines []Pipeline
 
-	mc ResourceManage
-
-	threadnum uint
-
+	mc               ResourceManage
 	exitWhenComplete bool
 
 	// Sleeptype can be fixed or rand.
@@ -106,7 +103,6 @@ func NewSpider(options SpiderOptions) *Spider {
 		scheduler:     options.Scheduler,
 		pipelines:     options.Pipelines,
 		mc:            options.ResourceManage,
-		threadnum:     options.MaxGoroutineNum,
 	}
 	// init filelog.
 	sp.CloseFileLog()
@@ -128,9 +124,6 @@ func NewSpider(options SpiderOptions) *Spider {
 	}
 	if sp.mc == nil {
 		log.Fatal("Please choose the need to use the ResourceManage")
-	}
-	if sp.threadnum == 0 {
-		sp.threadnum = 1
 	}
 	mlog.StraceInst().Println(sp.taskname + " " + "start")
 	return sp
@@ -235,13 +228,6 @@ func (this *Spider) SetScheduler(s Scheduler) *Spider {
 }
 
 func (this *Spider) Run() {
-	if this.threadnum == 0 {
-		this.threadnum = 1
-	}
-	//this.mc = NewResourceManageChan(this.threadnum)
-
-	//init db  by sorawa
-
 	for {
 		req := this.scheduler.Poll()
 
@@ -333,15 +319,6 @@ func (this *Spider) sleep() {
 
 func (this *Spider) GetDownloader() Downloader {
 	return this.downloader
-}
-
-func (this *Spider) SetThreadnum(i uint) *Spider {
-	this.threadnum = i
-	return this
-}
-
-func (this *Spider) GetThreadnum() uint {
-	return this.threadnum
 }
 
 // If exit when each crawl task is done.

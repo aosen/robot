@@ -1,106 +1,21 @@
-package robot
+/*
+Author: Aosen
+Data: 2016-01-07
+QQ: 316052486
+Desc: 基于redis的调度策略,可以实现分布式 爬虫有记忆功能
+*/
+
+package scheduler
 
 import (
-	"container/list"
-	"crypto/md5"
 	"encoding/json"
-	"github.com/aosen/mlog"
-	"github.com/garyburd/redigo/redis"
 	"sync"
+
+	"github.com/aosen/mlog"
+	"github.com/aosen/robot"
+	"github.com/garyburd/redigo/redis"
 )
 
-type Scheduler interface {
-	Push(requ *Request)
-	Poll() *Request
-	Count() int
-}
-
-//最简单的调度策略
-//当request超过1024会发生阻塞
-type SimpleScheduler struct {
-	queue chan *Request
-}
-
-func NewSimpleScheduler() *SimpleScheduler {
-	ch := make(chan *Request, 1024)
-	return &SimpleScheduler{ch}
-}
-
-func (this *SimpleScheduler) Push(requ *Request) {
-	this.queue <- requ
-}
-
-func (this *SimpleScheduler) Poll() *Request {
-	if len(this.queue) == 0 {
-		return nil
-	} else {
-		return <-this.queue
-	}
-}
-
-func (this *SimpleScheduler) Count() int {
-	return len(this.queue)
-}
-
-//基于队列的调度策略
-//队列的容量可动态增加，不会产生阻塞，但无法实现分布式
-type QueueScheduler struct {
-	locker *sync.Mutex
-	rm     bool
-	rmKey  map[[md5.Size]byte]*list.Element
-	queue  *list.List
-}
-
-func NewQueueScheduler(rmDuplicate bool) *QueueScheduler {
-	queue := list.New()
-	rmKey := make(map[[md5.Size]byte]*list.Element)
-	locker := new(sync.Mutex)
-	return &QueueScheduler{rm: rmDuplicate, queue: queue, rmKey: rmKey, locker: locker}
-}
-
-func (this *QueueScheduler) Push(requ *Request) {
-	this.locker.Lock()
-	var key [md5.Size]byte
-	if this.rm {
-		key = md5.Sum([]byte(requ.GetUrl()))
-		if _, ok := this.rmKey[key]; ok {
-			this.locker.Unlock()
-			return
-		}
-	}
-	e := this.queue.PushBack(requ)
-	if this.rm {
-		this.rmKey[key] = e
-	}
-	this.locker.Unlock()
-}
-
-func (this *QueueScheduler) Poll() *Request {
-	this.locker.Lock()
-	if this.queue.Len() <= 0 {
-		this.locker.Unlock()
-		return nil
-	}
-	e := this.queue.Front()
-	requ := e.Value.(*Request)
-	key := md5.Sum([]byte(requ.GetUrl()))
-	this.queue.Remove(e)
-	if this.rm {
-		delete(this.rmKey, key)
-	}
-	this.locker.Unlock()
-	return requ
-}
-
-func (this *QueueScheduler) Count() int {
-	this.locker.Lock()
-	len := this.queue.Len()
-	this.locker.Unlock()
-	return len
-}
-
-//基于redis的调度策略
-//可以实现分布式 爬虫有记忆功能
 type RedisScheduler struct {
 	locker                *sync.Mutex
 	requestList           string
@@ -140,7 +55,8 @@ func (this *RedisScheduler) newConn() (c redis.Conn, err error) {
 	}
 	return
 }
-func (this *RedisScheduler) Push(requ *Request) {
+
+func (this *RedisScheduler) Push(requ *robot.Request) {
 	this.locker.Lock()
 	defer this.locker.Unlock()
 
@@ -189,7 +105,7 @@ func (this *RedisScheduler) Push(requ *Request) {
 	}
 }
 
-func (this *RedisScheduler) Poll() *Request {
+func (this *RedisScheduler) Poll() *robot.Request {
 	this.locker.Lock()
 	defer this.locker.Unlock()
 
@@ -210,7 +126,7 @@ func (this *RedisScheduler) Poll() *Request {
 		return nil
 	}
 
-	requ := &Request{}
+	requ := &robot.Request{}
 
 	err = json.Unmarshal(buf.([]byte), requ)
 	if err != nil {

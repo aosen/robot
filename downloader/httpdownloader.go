@@ -1,22 +1,27 @@
-package robot
-
 /*
-下载器实现，实现Downloader接口的一系列类
+Author: Aosen
+Data: 2015-01-07
+Contact: 316052486
+Desc: 该http下载器参考自https://github.com/hu17889/go_spider/blob/master/core/downloader/downloader_http.go
 */
+
+package downloader
 
 import (
 	"bytes"
 	"compress/gzip"
-	"github.com/PuerkitoBio/goquery"
-	"github.com/aosen/mlog"
-	"github.com/aosen/utils"
-	"github.com/bitly/go-simplejson"
-	"golang.org/x/net/html/charset"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/PuerkitoBio/goquery"
+	"github.com/aosen/mlog"
+	"github.com/aosen/robot"
+	"github.com/aosen/utils"
+	"github.com/bitly/go-simplejson"
+	"golang.org/x/net/html/charset"
 )
 
 // HTTP下载器
@@ -33,9 +38,9 @@ func NewHttpDownloader() *HttpDownloader {
 	return &HttpDownloader{}
 }
 
-func (this *HttpDownloader) Download(req *Request) *Page {
+func (this *HttpDownloader) Download(req *robot.Request) *robot.Page {
 	var mtype string
-	var p = NewPage(req)
+	var p = robot.NewPage(req)
 	mtype = req.GetResponceType()
 	switch mtype {
 	case "html":
@@ -53,7 +58,7 @@ func (this *HttpDownloader) Download(req *Request) *Page {
 }
 
 // choose http GET/method to download
-func connectByHttp(p *Page, req *Request) (*http.Response, error) {
+func connectByHttp(p *robot.Page, req *robot.Request) (*http.Response, error) {
 	client := &http.Client{
 		CheckRedirect: req.GetRedirectFunc(),
 	}
@@ -85,7 +90,7 @@ func connectByHttp(p *Page, req *Request) (*http.Response, error) {
 }
 
 // choose a proxy server to excute http GET/method to download
-func connectByHttpProxy(p *Page, in_req *Request) (*http.Response, error) {
+func connectByHttpProxy(p *robot.Page, in_req *robot.Request) (*http.Response, error) {
 	request, _ := http.NewRequest("GET", in_req.GetUrl(), nil)
 	proxy, err := url.Parse(in_req.GetProxyHost())
 	if err != nil {
@@ -157,7 +162,7 @@ func (this *HttpDownloader) changeCharsetEncodingAutoGzipSupport(contentTypeStr 
 }
 
 // Download file and change the charset of page charset.
-func (this *HttpDownloader) downloadFile(p *Page, req *Request) (*Page, string) {
+func (this *HttpDownloader) downloadFile(p *robot.Page, req *robot.Request) (*robot.Page, string) {
 	var err error
 	var urlstr string
 	if urlstr = req.GetUrl(); len(urlstr) == 0 {
@@ -200,7 +205,7 @@ func (this *HttpDownloader) downloadFile(p *Page, req *Request) (*Page, string) 
 	return p, bodyStr
 }
 
-func (this *HttpDownloader) downloadHtml(p *Page, req *Request) *Page {
+func (this *HttpDownloader) downloadHtml(p *robot.Page, req *robot.Request) *robot.Page {
 	var err error
 	p, destbody := this.downloadFile(p, req)
 	//fmt.Printf("Destbody %v \r\n", destbody)
@@ -229,7 +234,7 @@ func (this *HttpDownloader) downloadHtml(p *Page, req *Request) *Page {
 	return p
 }
 
-func (this *HttpDownloader) downloadJson(p *Page, req *Request) *Page {
+func (this *HttpDownloader) downloadJson(p *robot.Page, req *robot.Request) *robot.Page {
 	var err error
 	p, destbody := this.downloadFile(p, req)
 	if !p.IsSucc() {
@@ -257,7 +262,7 @@ func (this *HttpDownloader) downloadJson(p *Page, req *Request) *Page {
 	return p
 }
 
-func (this *HttpDownloader) downloadText(p *Page, req *Request) *Page {
+func (this *HttpDownloader) downloadText(p *robot.Page, req *robot.Request) *robot.Page {
 	p, destbody := this.downloadFile(p, req)
 	if !p.IsSucc() {
 		return p

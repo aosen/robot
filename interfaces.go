@@ -5,13 +5,18 @@ package robot
 1. Downloader接口
 */
 
-import ()
-
 // The Downloader interface.
 // You can implement the interface by implement function Download.
 // Function Download need to return Page instance pointer that has request result downloaded from Request.
 type Downloader interface {
 	Download(req *Request) *Page
+}
+
+//url调度接口
+type Scheduler interface {
+	Push(requ *Request)
+	Poll() *Request
+	Count() int
 }
 
 // The Task represents interface that contains environment variables.
@@ -27,6 +32,7 @@ type PageProcesser interface {
 }
 
 // The interface Pipeline can be implemented to customize ways of persistent.
+// 最终抓取数据流向，需开发者自己实现，pipeline文件夹下有例子
 type Pipeline interface {
 	// The Process implements result persistent.
 	// The items has the result be crawled.

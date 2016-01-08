@@ -23,7 +23,6 @@ type RedisScheduler struct {
 	maxConn               int
 	maxIdle               int
 	forbiddenDuplicateUrl bool
-	queueMax              int
 }
 
 func NewRedisScheduler(addr string, maxConn, maxIdle int, forbiddenDuplicateUrl bool) *RedisScheduler {

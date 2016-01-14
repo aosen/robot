@@ -15,7 +15,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/aosen/mlog"
-	"github.com/bitly/go-simplejson"
 )
 
 type Spider struct {
@@ -130,16 +129,16 @@ func NewSpider(options SpiderOptions) *Spider {
 }
 
 // Deal with one url and return the PageItems.
-func (this *Spider) Get(url string, respType string) *PageItems {
+func (self *Spider) Get(url string, respType string) *PageItems {
 	req := NewRequest(url, respType, "", "GET", "", nil, nil, nil, nil)
-	return this.GetByRequest(req)
+	return self.GetByRequest(req)
 }
 
 // Deal with one url and return the PageItems with other setting.
-func (this *Spider) GetByRequest(req *Request) *PageItems {
+func (self *Spider) GetByRequest(req *Request) *PageItems {
 	var reqs []*Request
 	reqs = append(reqs, req)
-	items := this.GetAllByRequest(reqs)
+	items := self.GetAllByRequest(reqs)
 	if len(items) != 0 {
 		return items[0]
 	}
@@ -147,94 +146,94 @@ func (this *Spider) GetByRequest(req *Request) *PageItems {
 }
 
 // Deal with several urls and return the PageItems slice
-func (this *Spider) GetAllByRequest(reqs []*Request) []*PageItems {
+func (self *Spider) GetAllByRequest(reqs []*Request) []*PageItems {
 	// push url
 	for _, req := range reqs {
 		//req := request.NewRequest(u, respType, urltag, method, postdata, header, cookies)
-		this.AddRequest(req)
+		self.AddRequest(req)
 	}
 
 	pip := NewCollectPipelinePageItems()
-	this.AddPipeline(pip)
+	self.AddPipeline(pip)
 
-	this.Run()
+	self.Run()
 
 	return pip.GetCollected()
 }
 
 // add Request to Schedule
-func (this *Spider) AddRequest(req *Request) *Spider {
+func (self *Spider) AddRequest(req *Request) *Spider {
 	if req == nil {
 		mlog.LogInst().LogError("request is nil")
-		return this
+		return self
 	} else if req.GetUrl() == "" {
 		mlog.LogInst().LogError("request is empty")
-		return this
+		return self
 	}
-	this.scheduler.Push(req)
-	return this
+	self.scheduler.Push(req)
+	return self
 }
 
 //
-func (this *Spider) AddRequests(reqs []*Request) *Spider {
+func (self *Spider) AddRequests(reqs []*Request) *Spider {
 	for _, req := range reqs {
-		this.AddRequest(req)
+		self.AddRequest(req)
 	}
-	return this
+	return self
 }
 
-func (this *Spider) AddPipeline(p Pipeline) *Spider {
-	this.pipelines = append(this.pipelines, p)
-	return this
+func (self *Spider) AddPipeline(p Pipeline) *Spider {
+	self.pipelines = append(self.pipelines, p)
+	return self
 }
 
 // Deal with several urls and return the PageItems slice.
-func (this *Spider) GetAll(urls []string, respType string) []*PageItems {
+func (self *Spider) GetAll(urls []string, respType string) []*PageItems {
 	for _, u := range urls {
 		req := NewRequest(u, respType, "", "GET", "", nil, nil, nil, nil)
-		this.AddRequest(req)
+		self.AddRequest(req)
 	}
 
 	pip := NewCollectPipelinePageItems()
-	this.AddPipeline(pip)
+	self.AddPipeline(pip)
 
-	this.Run()
+	self.Run()
 
 	return pip.GetCollected()
 }
 
-func (this *Spider) Taskname() string {
-	return this.taskname
+func (self *Spider) Taskname() string {
+	return self.taskname
 }
 
 // The CloseFileLog close file log.
-func (this *Spider) CloseFileLog() *Spider {
+func (self *Spider) CloseFileLog() *Spider {
 	mlog.InitFilelog(false, "")
-	return this
+	return self
 }
 
-func (this *Spider) SetDownloader(d Downloader) *Spider {
-	this.downloader = d
-	return this
+func (self *Spider) SetDownloader(d Downloader) *Spider {
+	self.downloader = d
+	return self
 }
 
-func (this *Spider) GetScheduler() Scheduler {
-	return this.scheduler
+func (self *Spider) GetScheduler() Scheduler {
+	return self.scheduler
 }
 
-func (this *Spider) SetScheduler(s Scheduler) *Spider {
-	this.scheduler = s
-	return this
+func (self *Spider) SetScheduler(s Scheduler) *Spider {
+	self.scheduler = s
+	return self
 }
 
-func (this *Spider) Run() {
+func (self *Spider) Run() {
 	for {
-		req := this.scheduler.Poll()
+		req := self.scheduler.Poll()
 
 		// mc is not atomic
-		if this.mc.Has() == 0 && req == nil && this.exitWhenComplete {
+		if self.mc.Has() == 0 && req == nil && self.exitWhenComplete {
 			mlog.StraceInst().Println("** executed callback **")
-			this.pageProcesser.Finish()
+			self.pageProcesser.Finish()
 			mlog.StraceInst().Println("** end spider **")
 			break
 		} else if req == nil {
@@ -242,28 +241,29 @@ func (this *Spider) Run() {
 			//mlog.StraceInst().Println("scheduler is empty")
 			continue
 		}
-		this.mc.GetOne()
+		//此处需要增加协程池的支持
+		self.mc.GetOne()
 
 		// Asynchronous fetching
 		go func(req *Request) {
-			defer this.mc.FreeOne()
+			defer self.mc.FreeOne()
 			//time.Sleep( time.Duration(rand.Intn(5)) * time.Second)
 			mlog.StraceInst().Println("start crawl : " + req.GetUrl())
-			this.pageProcess(req)
+			self.pageProcess(req)
 		}(req)
 	}
-	this.close()
+	self.close()
 }
 
-func (this *Spider) close() {
-	//this.SetScheduler(NewQueueScheduler(false))
-	//this.SetDownloader(NewHttpDownloader())
-	this.pipelines = make([]Pipeline, 0)
-	this.exitWhenComplete = true
+func (self *Spider) close() {
+	//self.SetScheduler(NewQueueScheduler(false))
+	//self.SetDownloader(NewHttpDownloader())
+	self.pipelines = make([]Pipeline, 0)
+	self.exitWhenComplete = true
 }
 
 // core processer
-func (this *Spider) pageProcess(req *Request) {
+func (self *Spider) pageProcess(req *Request) {
 	var p *Page
 
 	defer func() {
@@ -278,8 +278,8 @@ func (this *Spider) pageProcess(req *Request) {
 
 	// download page
 	for i := 0; i < 3; i++ {
-		this.sleep()
-		p = this.downloader.Download(req)
+		self.sleep()
+		p = self.downloader.Download(req)
 		if p.IsSucc() { // if fail retry 3 times
 			break
 		}
@@ -290,25 +290,25 @@ func (this *Spider) pageProcess(req *Request) {
 		return
 	}
 
-	this.pageProcesser.Process(p)
+	self.pageProcesser.Process(p)
 	for _, req := range p.GetTargetRequests() {
-		this.AddRequest(req)
+		self.AddRequest(req)
 	}
 
 	// output
 	if !p.GetSkip() {
-		for _, pip := range this.pipelines {
+		for _, pip := range self.pipelines {
 			//fmt.Println("%v",p.GetPageItems().GetAll())
-			pip.Process(p.GetPageItems(), this)
+			pip.Process(p.GetPageItems(), self)
 		}
 	}
 }
 
-func (this *Spider) sleep() {
-	if this.sleeptype == "fixed" {
-		time.Sleep(time.Duration(this.startSleeptime) * time.Millisecond)
-	} else if this.sleeptype == "rand" {
-		sleeptime := rand.Intn(int(this.endSleeptime-this.startSleeptime)) + int(this.startSleeptime)
+func (self *Spider) sleep() {
+	if self.sleeptype == "fixed" {
+		time.Sleep(time.Duration(self.startSleeptime) * time.Millisecond)
+	} else if self.sleeptype == "rand" {
+		sleeptime := rand.Intn(int(self.endSleeptime-self.startSleeptime)) + int(self.startSleeptime)
 		time.Sleep(time.Duration(sleeptime) * time.Millisecond)
 	}
 }
@@ -317,19 +317,19 @@ func (this *Spider) sleep() {
 用户函数
 */
 
-func (this *Spider) GetDownloader() Downloader {
-	return this.downloader
+func (self *Spider) GetDownloader() Downloader {
+	return self.downloader
 }
 
 // If exit when each crawl task is done.
 // If you want to keep spider in memory all the time and add url from outside, you can set it true.
-func (this *Spider) SetExitWhenComplete(e bool) *Spider {
-	this.exitWhenComplete = e
-	return this
+func (self *Spider) SetExitWhenComplete(e bool) *Spider {
+	self.exitWhenComplete = e
+	return self
 }
 
-func (this *Spider) GetExitWhenComplete() bool {
-	return this.exitWhenComplete
+func (self *Spider) GetExitWhenComplete() bool {
+	return self.exitWhenComplete
 }
 
 // The OpenFileLog initialize the log path and open log.
@@ -337,84 +337,84 @@ func (this *Spider) GetExitWhenComplete() bool {
 // Log command is mlog.LogInst().LogError("info") or mlog.LogInst().LogInfo("info").
 // Spider's default log is closed.
 // The filepath is absolute path.
-func (this *Spider) OpenFileLog(filePath string) *Spider {
+func (self *Spider) OpenFileLog(filePath string) *Spider {
 	mlog.InitFilelog(true, filePath)
-	return this
+	return self
 }
 
 // OpenFileLogDefault open file log with default file path like "WD/log/log.2014-9-1".
-func (this *Spider) OpenFileLogDefault() *Spider {
+func (self *Spider) OpenFileLogDefault() *Spider {
 	mlog.InitFilelog(true, "")
-	return this
+	return self
 }
 
 // The OpenStrace open strace that output progress info on the screen.
 // Spider's default strace is opened.
-func (this *Spider) OpenStrace() *Spider {
+func (self *Spider) OpenStrace() *Spider {
 	mlog.StraceInst().Open()
-	return this
+	return self
 }
 
 // The CloseStrace close strace.
-func (this *Spider) CloseStrace() *Spider {
+func (self *Spider) CloseStrace() *Spider {
 	mlog.StraceInst().Close()
-	return this
+	return self
 }
 
 // The SetSleepTime set sleep time after each crawl task.
 // The unit is millisecond.
 // If sleeptype is "fixed", the s is the sleep time and e is useless.
 // If sleeptype is "rand", the sleep time is rand between s and e.
-func (this *Spider) SetSleepTime(sleeptype string, s uint, e uint) *Spider {
-	this.sleeptype = sleeptype
-	this.startSleeptime = s
-	this.endSleeptime = e
-	if this.sleeptype == "rand" && this.startSleeptime >= this.endSleeptime {
+func (self *Spider) SetSleepTime(sleeptype string, s uint, e uint) *Spider {
+	self.sleeptype = sleeptype
+	self.startSleeptime = s
+	self.endSleeptime = e
+	if self.sleeptype == "rand" && self.startSleeptime >= self.endSleeptime {
 		panic("startSleeptime must smaller than endSleeptime")
 	}
-	return this
+	return self
 }
 
-func (this *Spider) AddUrl(url string, respType string) *Spider {
+func (self *Spider) AddUrl(url string, respType string) *Spider {
 	req := NewRequest(url, respType, "", "GET", "", nil, nil, nil, nil)
-	this.AddRequest(req)
-	return this
+	self.AddRequest(req)
+	return self
 }
 
-func (this *Spider) AddUrlEx(url string, respType string, headerFile string, proxyHost string) *Spider {
+func (self *Spider) AddUrlEx(url string, respType string, headerFile string, proxyHost string) *Spider {
 	req := NewRequest(url, respType, "", "GET", "", nil, nil, nil, nil)
-	this.AddRequest(req.AddHeaderFile(headerFile).AddProxyHost(proxyHost))
-	return this
+	self.AddRequest(req.AddHeaderFile(headerFile).AddProxyHost(proxyHost))
+	return self
 }
 
-func (this *Spider) AddUrlWithHeaderFile(url string, respType string, headerFile string) *Spider {
+func (self *Spider) AddUrlWithHeaderFile(url string, respType string, headerFile string) *Spider {
 	req := NewRequestWithHeaderFile(url, respType, headerFile)
-	this.AddRequest(req)
-	return this
+	self.AddRequest(req)
+	return self
 }
 
-func (this *Spider) AddUrls(urls []string, respType string) *Spider {
+func (self *Spider) AddUrls(urls []string, respType string) *Spider {
 	for _, url := range urls {
 		req := NewRequest(url, respType, "", "GET", "", nil, nil, nil, nil)
-		this.AddRequest(req)
+		self.AddRequest(req)
 	}
-	return this
+	return self
 }
 
-func (this *Spider) AddUrlsWithHeaderFile(urls []string, respType string, headerFile string) *Spider {
+func (self *Spider) AddUrlsWithHeaderFile(urls []string, respType string, headerFile string) *Spider {
 	for _, url := range urls {
 		req := NewRequestWithHeaderFile(url, respType, headerFile)
-		this.AddRequest(req)
+		self.AddRequest(req)
 	}
-	return this
+	return self
 }
 
-func (this *Spider) AddUrlsEx(urls []string, respType string, headerFile string, proxyHost string) *Spider {
+func (self *Spider) AddUrlsEx(urls []string, respType string, headerFile string, proxyHost string) *Spider {
 	for _, url := range urls {
 		req := NewRequest(url, respType, "", "GET", "", nil, nil, nil, nil)
-		this.AddRequest(req.AddHeaderFile(headerFile).AddProxyHost(proxyHost))
+		self.AddRequest(req.AddHeaderFile(headerFile).AddProxyHost(proxyHost))
 	}
-	return this
+	return self
 }
 
 // Request represents object waiting for being crawled.

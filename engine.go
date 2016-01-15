@@ -15,6 +15,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/aosen/mlog"
+	"github.com/bitly/go-simplejson"
 )
 
 type Spider struct {
@@ -28,7 +29,7 @@ type Spider struct {
 
 	pipelines []Pipeline
 
-	mc               ResourceManage
+	rm               ResourceManage
 	exitWhenComplete bool
 
 	// Sleeptype can be fixed or rand.
@@ -101,7 +102,7 @@ func NewSpider(options SpiderOptions) *Spider {
 		downloader:    options.Downloader,
 		scheduler:     options.Scheduler,
 		pipelines:     options.Pipelines,
-		mc:            options.ResourceManage,
+		rm:            options.ResourceManage,
 	}
 	// init filelog.
 	sp.CloseFileLog()
@@ -121,7 +122,7 @@ func NewSpider(options SpiderOptions) *Spider {
 	if sp.pageProcesser == nil {
 		log.Fatal("Please choose the need to use the PageProcesser")
 	}
-	if sp.mc == nil {
+	if sp.rm == nil {
 		log.Fatal("Please choose the need to use the ResourceManage")
 	}
 	mlog.StraceInst().Println(sp.taskname + " " + "start")
@@ -227,32 +228,62 @@ func (self *Spider) SetScheduler(s Scheduler) *Spider {
 }
 
 func (self *Spider) Run() {
-	for {
-		req := self.scheduler.Poll()
+	/*升级改造，增加协程池*/
+	/*
+		for {
+			req := self.scheduler.Poll()
 
-		// mc is not atomic
-		if self.mc.Has() == 0 && req == nil && self.exitWhenComplete {
-			mlog.StraceInst().Println("** executed callback **")
-			self.pageProcesser.Finish()
-			mlog.StraceInst().Println("** end spider **")
-			break
-		} else if req == nil {
-			time.Sleep(500 * time.Millisecond)
-			//mlog.StraceInst().Println("scheduler is empty")
-			continue
+			// rm is not atomic
+			if self.rm.Has() == 0 && req == nil && self.exitWhenComplete {
+				self.pageProcesser.Finish()
+				mlog.StraceInst().Println("Grab complete !!!")
+				self.close()
+				break
+			} else if req == nil {
+				time.Sleep(500 * time.Millisecond)
+				//mlog.StraceInst().Println("scheduler is empty")
+				continue
+			}
+			//此处需要增加协程池的支持
+			self.rm.GetOne()
+
+			// Asynchronous fetching
+			go func(req *Request) {
+				defer self.rm.FreeOne()
+				//time.Sleep( time.Duration(rand.Intn(5)) * time.Second)
+				mlog.StraceInst().Println("start crawl : " + req.GetUrl())
+				self.pageProcess(req)
+			}(req)
 		}
-		//此处需要增加协程池的支持
-		self.mc.GetOne()
+	*/
+	//不断向爬虫池添加任务
+	go func() {
+		for {
+			req := self.scheduler.Poll()
+			log.Println(req)
 
-		// Asynchronous fetching
-		go func(req *Request) {
-			defer self.mc.FreeOne()
-			//time.Sleep( time.Duration(rand.Intn(5)) * time.Second)
-			mlog.StraceInst().Println("start crawl : " + req.GetUrl())
-			self.pageProcess(req)
-		}(req)
-	}
-	self.close()
+			// rm is not atomic
+			if self.rm.Has() == 0 && req == nil && self.exitWhenComplete {
+				self.pageProcesser.Finish()
+				mlog.StraceInst().Println("Grab complete !!!")
+				break
+			} else if req == nil {
+				time.Sleep(500 * time.Millisecond)
+				//mlog.StraceInst().Println("scheduler is empty")
+				continue
+			}
+			self.rm.AddTask(func(req *Request) {
+				mlog.StraceInst().Println("start crawl : " + req.GetUrl())
+				self.pageProcess(req)
+			}, req)
+		}
+		//关闭爬虫
+		self.close()
+		//释放爬虫池
+		self.rm.Free()
+	}()
+	//爬虫池开始执行任务
+	self.rm.Start()
 }
 
 func (self *Spider) close() {

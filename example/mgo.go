@@ -127,13 +127,13 @@ func main() {
 
 	//爬虫初始化
 	options := robot.SpiderOptions{
-		TaskName:      "testspider",
+		TaskName:      "mgospider",
 		PageProcesser: NewMyProcesser(),
 		Downloader:    downloader.NewHttpDownloader(),
 		Scheduler:     scheduler.NewRedisScheduler(redisAddr, redisMaxConn, redisMaxIdle, false),
 		Pipelines:     []robot.Pipeline{NewPipelineMongo(mongoUrl, mongoDB, mongoCollection)},
 		//设置资源管理器，最大协程数为10
-		ResourceManage: resource.NewSimpleManage(10),
+		ResourceManage: resource.NewSpidersPool(10, nil),
 	}
 
 	sp := robot.NewSpider(options)

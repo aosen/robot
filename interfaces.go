@@ -50,9 +50,21 @@ type CollectPipeline interface {
 
 //资源管理接口
 // ResourceManage is an interface that who want implement an management object can realize these functions.
+/*
 type ResourceManage interface {
 	GetOne()
 	FreeOne()
 	Has() uint
 	Left() uint
+}
+*/
+type ResourceManage interface {
+	//启动资源管理器
+	Start()
+	//释放资源管理器
+	Free()
+	//向资源管理器中添加任务
+	AddTask(func(*Request), *Request)
+	//获取资源管理器中的资源量
+	Has() int
 }

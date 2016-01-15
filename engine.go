@@ -56,40 +56,8 @@ type SpiderOptions struct {
 	MaxGoroutineNum uint
 }
 
-// Spider is scheduler module for all the other modules, like downloader, pipeline, scheduler and etc.
-// The taskname could be empty string too, or it can be used in Pipeline for record the result crawled by which task;
 /*
-func NewSpider(pageinst PageProcesser, taskname string) *Spider {
-	mlog.StraceInst().Open()
-
-	ap := &Spider{taskname: taskname, pageProcesser: pageinst}
-
-	// init filelog.
-	ap.CloseFileLog()
-	ap.exitWhenComplete = true
-	ap.sleeptype = "fixed"
-	ap.startSleeptime = 0
-
-	// init spider
-	if ap.scheduler == nil {
-		log.Fatal("Please choose the need to use the scheduler, use method SetScheduler")
-		//ap.SetScheduler(NewQueueScheduler(false))
-	}
-
-	if ap.downloader == nil {
-		log.Fatal("Please choose the need to use the downloader, use method SetDownloader")
-		//ap.SetDownloader(NewHttpDownloader())
-	}
-
-	mlog.StraceInst().Println("** start spider **")
-	ap.piplelines = make([]Pipeline, 0)
-
-	return ap
-}
-*/
-
-/*
-2017-01-07
+2016-01-07
 创建爬虫项目，一切从这个开始，首选需要你添加爬虫的各种选项参数，包括用哪种下载器，哪种调度器，哪种资源管理器，哪种pipeline，及页面处理器
 当然，我们也为你准备了一系列写好的类，给你进行参考和使用，你可以到对应的文件夹中去寻找
 */

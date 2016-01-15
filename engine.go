@@ -74,7 +74,6 @@ func NewSpider(options SpiderOptions) *Spider {
 	}
 	// init filelog.
 	sp.CloseFileLog()
-	sp.exitWhenComplete = true
 	sp.sleeptype = "fixed"
 	sp.startSleeptime = 0
 
@@ -196,39 +195,10 @@ func (self *Spider) SetScheduler(s Scheduler) *Spider {
 }
 
 func (self *Spider) Run() {
-	/*升级改造，增加协程池*/
-	/*
-		for {
-			req := self.scheduler.Poll()
-
-			// rm is not atomic
-			if self.rm.Has() == 0 && req == nil && self.exitWhenComplete {
-				self.pageProcesser.Finish()
-				mlog.StraceInst().Println("Grab complete !!!")
-				self.close()
-				break
-			} else if req == nil {
-				time.Sleep(500 * time.Millisecond)
-				//mlog.StraceInst().Println("scheduler is empty")
-				continue
-			}
-			//此处需要增加协程池的支持
-			self.rm.GetOne()
-
-			// Asynchronous fetching
-			go func(req *Request) {
-				defer self.rm.FreeOne()
-				//time.Sleep( time.Duration(rand.Intn(5)) * time.Second)
-				mlog.StraceInst().Println("start crawl : " + req.GetUrl())
-				self.pageProcess(req)
-			}(req)
-		}
-	*/
 	//不断向爬虫池添加任务
 	go func() {
 		for {
 			req := self.scheduler.Poll()
-			log.Println(req)
 
 			// rm is not atomic
 			if self.rm.Has() == 0 && req == nil && self.exitWhenComplete {

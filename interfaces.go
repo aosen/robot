@@ -49,15 +49,6 @@ type CollectPipeline interface {
 }
 
 //资源管理接口
-// ResourceManage is an interface that who want implement an management object can realize these functions.
-/*
-type ResourceManage interface {
-	GetOne()
-	FreeOne()
-	Has() uint
-	Left() uint
-}
-*/
 type ResourceManage interface {
 	//启动资源管理器
 	Start()

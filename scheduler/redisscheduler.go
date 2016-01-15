@@ -15,6 +15,20 @@ import (
 	"github.com/garyburd/redigo/redis"
 )
 
+type RedisSchedulerOptions struct {
+	//请求对流的名称
+	RequestList string
+	//已经抓取的url列表
+	UrlList string
+	//redis连接地址
+	RedisAddr string
+	//最大连接数
+	MaxConn int
+	MaxIdle int
+	//是否做url去重
+	ForbiddenDuplicateUrl bool
+}
+
 type RedisScheduler struct {
 	requestList           string
 	urlList               string
@@ -25,49 +39,49 @@ type RedisScheduler struct {
 	forbiddenDuplicateUrl bool
 }
 
-func NewRedisScheduler(addr string, maxConn, maxIdle int, forbiddenDuplicateUrl bool) *RedisScheduler {
+func NewRedisScheduler(options RedisSchedulerOptions) *RedisScheduler {
 	rs := &RedisScheduler{
-		redisAddr:             addr,
-		forbiddenDuplicateUrl: forbiddenDuplicateUrl,
-		maxConn:               maxConn,
-		maxIdle:               maxIdle,
-		requestList:           "robot_request",
-		urlList:               "robot_url",
+		redisAddr:             options.RedisAddr,
+		forbiddenDuplicateUrl: options.ForbiddenDuplicateUrl,
+		maxConn:               options.MaxConn,
+		maxIdle:               options.MaxIdle,
+		requestList:           options.RequestList,
+		urlList:               options.UrlList,
 	}
 	rs = rs.Init()
 	return rs
 }
 
-func (this *RedisScheduler) Init() *RedisScheduler {
-	this.redisPool = redis.NewPool(this.newConn, this.maxIdle)
-	this.redisPool.MaxActive = this.maxConn
-	return this
+func (self *RedisScheduler) Init() *RedisScheduler {
+	self.redisPool = redis.NewPool(self.newConn, self.maxIdle)
+	self.redisPool.MaxActive = self.maxConn
+	return self
 }
 
-func (this *RedisScheduler) newConn() (c redis.Conn, err error) {
-	c, err = redis.Dial("tcp", this.redisAddr)
+func (self *RedisScheduler) newConn() (c redis.Conn, err error) {
+	c, err = redis.Dial("tcp", self.redisAddr)
 	if err != nil {
 		panic(err)
 	}
 	return
 }
 
-func (this *RedisScheduler) Push(requ *robot.Request) {
+func (self *RedisScheduler) Push(requ *robot.Request) {
 	requJson, err := json.Marshal(requ)
 	if err != nil {
 		mlog.LogInst().LogError("RedisScheduler Push Error: " + err.Error())
 		return
 	}
 
-	conn := this.redisPool.Get()
+	conn := self.redisPool.Get()
 	defer conn.Close()
 
 	if err != nil {
 		mlog.LogInst().LogError("RedisScheduler Push Error: " + err.Error())
 		return
 	}
-	if this.forbiddenDuplicateUrl {
-		urlExist, err := conn.Do("HGET", this.urlList, requ.GetUrl())
+	if self.forbiddenDuplicateUrl {
+		urlExist, err := conn.Do("HGET", self.urlList, requ.GetUrl())
 		if err != nil {
 			mlog.LogInst().LogError("RedisScheduler Push Error: " + err.Error())
 			return
@@ -75,34 +89,33 @@ func (this *RedisScheduler) Push(requ *robot.Request) {
 		if urlExist != nil {
 			return
 		}
-
 		conn.Do("MULTI")
-		_, err = conn.Do("HSET", this.urlList, requ.GetUrl(), 1)
+		_, err = conn.Do("HSET", self.urlList, requ.GetUrl(), 1)
 		if err != nil {
 			mlog.LogInst().LogError("RedisScheduler Push Error: " + err.Error())
 			conn.Do("DISCARD")
 			return
 		}
 	}
-	_, err = conn.Do("RPUSH", this.requestList, requJson)
+	_, err = conn.Do("RPUSH", self.requestList, requJson)
 	if err != nil {
 		mlog.LogInst().LogError("RedisScheduler Push Error: " + err.Error())
-		if this.forbiddenDuplicateUrl {
+		if self.forbiddenDuplicateUrl {
 			conn.Do("DISCARD")
 		}
 		return
 	}
 
-	if this.forbiddenDuplicateUrl {
+	if self.forbiddenDuplicateUrl {
 		conn.Do("EXEC")
 	}
 }
 
-func (this *RedisScheduler) Poll() *robot.Request {
-	conn := this.redisPool.Get()
+func (self *RedisScheduler) Poll() *robot.Request {
+	conn := self.redisPool.Get()
 	defer conn.Close()
 
-	length, err := this.count()
+	length, err := self.count()
 	if err != nil {
 		return nil
 	}
@@ -110,7 +123,7 @@ func (this *RedisScheduler) Poll() *robot.Request {
 		mlog.LogInst().LogError("RedisScheduler Poll length 0")
 		return nil
 	}
-	buf, err := conn.Do("LPOP", this.requestList)
+	buf, err := conn.Do("LPOP", self.requestList)
 	if err != nil {
 		mlog.LogInst().LogError("RedisScheduler Poll Error: " + err.Error())
 		return nil
@@ -127,11 +140,11 @@ func (this *RedisScheduler) Poll() *robot.Request {
 	return requ
 }
 
-func (this *RedisScheduler) Count() int {
+func (self *RedisScheduler) Count() int {
 	var length int
 	var err error
 
-	length, err = this.count()
+	length, err = self.count()
 	if err != nil {
 		return 0
 	}
@@ -139,10 +152,10 @@ func (this *RedisScheduler) Count() int {
 	return length
 }
 
-func (this *RedisScheduler) count() (int, error) {
-	conn := this.redisPool.Get()
+func (self *RedisScheduler) count() (int, error) {
+	conn := self.redisPool.Get()
 	defer conn.Close()
-	length, err := conn.Do("LLEN", this.requestList)
+	length, err := conn.Do("LLEN", self.requestList)
 	if err != nil {
 		mlog.LogInst().LogError("RedisScheduler Count Error: " + err.Error())
 		return 0, err

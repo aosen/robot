@@ -125,14 +125,23 @@ func main() {
 	mongoDB := "test"
 	mongoCollection := "test"
 
+	scheduleroptions := scheduler.RedisSchedulerOptions{
+		RequestList:           "mgospider_requests",
+		UrlList:               "mgospider_urls",
+		RedisAddr:             redisAddr,
+		MaxConn:               redisMaxConn,
+		MaxIdle:               redisMaxIdle,
+		ForbiddenDuplicateUrl: false,
+	}
+
 	//爬虫初始化
 	options := robot.SpiderOptions{
 		TaskName:      "mgospider",
 		PageProcesser: NewMyProcesser(),
 		Downloader:    downloader.NewHttpDownloader(),
-		Scheduler:     scheduler.NewRedisScheduler(redisAddr, redisMaxConn, redisMaxIdle, false),
+		Scheduler:     scheduler.NewRedisScheduler(scheduleroptions),
 		Pipelines:     []robot.Pipeline{NewPipelineMongo(mongoUrl, mongoDB, mongoCollection)},
-		//设置资源管理器，最大协程数为10
+		//设置资源管理器，协程池容量为10
 		ResourceManage: resource.NewSpidersPool(10, nil),
 	}
 

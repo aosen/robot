@@ -38,19 +38,19 @@ func NewHttpDownloader() *HttpDownloader {
 	return &HttpDownloader{}
 }
 
-func (this *HttpDownloader) Download(req *robot.Request) *robot.Page {
+func (self *HttpDownloader) Download(req *robot.Request) *robot.Page {
 	var mtype string
 	var p = robot.NewPage(req)
 	mtype = req.GetResponceType()
 	switch mtype {
 	case "html":
-		return this.downloadHtml(p, req)
+		return self.downloadHtml(p, req)
 	case "json":
 		fallthrough
 	case "jsonp":
-		return this.downloadJson(p, req)
+		return self.downloadJson(p, req)
 	case "text":
-		return this.downloadText(p, req)
+		return self.downloadText(p, req)
 	default:
 		mlog.LogInst().LogError("error request type:" + mtype)
 	}
@@ -111,7 +111,7 @@ func connectByHttpProxy(p *robot.Page, in_req *robot.Request) (*http.Response, e
 
 // Charset auto determine. Use golang.org/x/net/html/charset. Get page body and change it to utf-8
 // 自动转码
-func (this *HttpDownloader) changeCharsetEncodingAuto(contentTypeStr string, sor io.ReadCloser) string {
+func (self *HttpDownloader) changeCharsetEncodingAuto(contentTypeStr string, sor io.ReadCloser) string {
 	var err error
 	destReader, err := charset.NewReader(sor, contentTypeStr)
 
@@ -133,7 +133,7 @@ func (this *HttpDownloader) changeCharsetEncodingAuto(contentTypeStr string, sor
 	return bodystr
 }
 
-func (this *HttpDownloader) changeCharsetEncodingAutoGzipSupport(contentTypeStr string, sor io.ReadCloser) string {
+func (self *HttpDownloader) changeCharsetEncodingAutoGzipSupport(contentTypeStr string, sor io.ReadCloser) string {
 	var err error
 	gzipReader, err := gzip.NewReader(sor)
 	if err != nil {
@@ -162,7 +162,7 @@ func (this *HttpDownloader) changeCharsetEncodingAutoGzipSupport(contentTypeStr 
 }
 
 // Download file and change the charset of page charset.
-func (this *HttpDownloader) downloadFile(p *robot.Page, req *robot.Request) (*robot.Page, string) {
+func (self *HttpDownloader) downloadFile(p *robot.Page, req *robot.Request) (*robot.Page, string) {
 	var err error
 	var urlstr string
 	if urlstr = req.GetUrl(); len(urlstr) == 0 {
@@ -196,18 +196,18 @@ func (this *HttpDownloader) downloadFile(p *robot.Page, req *robot.Request) (*ro
 	// get converter to utf-8
 	var bodyStr string
 	if resp.Header.Get("Content-Encoding") == "gzip" {
-		bodyStr = this.changeCharsetEncodingAutoGzipSupport(resp.Header.Get("Content-Type"), resp.Body)
+		bodyStr = self.changeCharsetEncodingAutoGzipSupport(resp.Header.Get("Content-Type"), resp.Body)
 	} else {
-		bodyStr = this.changeCharsetEncodingAuto(resp.Header.Get("Content-Type"), resp.Body)
+		bodyStr = self.changeCharsetEncodingAuto(resp.Header.Get("Content-Type"), resp.Body)
 	}
 	//fmt.Printf("utf-8 body %v \r\n", bodyStr)
 	defer resp.Body.Close()
 	return p, bodyStr
 }
 
-func (this *HttpDownloader) downloadHtml(p *robot.Page, req *robot.Request) *robot.Page {
+func (self *HttpDownloader) downloadHtml(p *robot.Page, req *robot.Request) *robot.Page {
 	var err error
-	p, destbody := this.downloadFile(p, req)
+	p, destbody := self.downloadFile(p, req)
 	//fmt.Printf("Destbody %v \r\n", destbody)
 	if !p.IsSucc() {
 		//fmt.Print("Page error \r\n")
@@ -234,9 +234,9 @@ func (this *HttpDownloader) downloadHtml(p *robot.Page, req *robot.Request) *rob
 	return p
 }
 
-func (this *HttpDownloader) downloadJson(p *robot.Page, req *robot.Request) *robot.Page {
+func (self *HttpDownloader) downloadJson(p *robot.Page, req *robot.Request) *robot.Page {
 	var err error
-	p, destbody := this.downloadFile(p, req)
+	p, destbody := self.downloadFile(p, req)
 	if !p.IsSucc() {
 		return p
 	}
@@ -262,8 +262,8 @@ func (this *HttpDownloader) downloadJson(p *robot.Page, req *robot.Request) *rob
 	return p
 }
 
-func (this *HttpDownloader) downloadText(p *robot.Page, req *robot.Request) *robot.Page {
-	p, destbody := this.downloadFile(p, req)
+func (self *HttpDownloader) downloadText(p *robot.Page, req *robot.Request) *robot.Page {
+	p, destbody := self.downloadFile(p, req)
 	if !p.IsSucc() {
 		return p
 	}

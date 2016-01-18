@@ -29,43 +29,43 @@ func NewQueueScheduler(rmDuplicate bool) *QueueScheduler {
 	return &QueueScheduler{rm: rmDuplicate, queue: queue, rmKey: rmKey, locker: locker}
 }
 
-func (this *QueueScheduler) Push(requ *robot.Request) {
-	this.locker.Lock()
+func (self *QueueScheduler) Push(requ *robot.Request) {
+	self.locker.Lock()
 	var key [md5.Size]byte
-	if this.rm {
+	if self.rm {
 		key = md5.Sum([]byte(requ.GetUrl()))
-		if _, ok := this.rmKey[key]; ok {
-			this.locker.Unlock()
+		if _, ok := self.rmKey[key]; ok {
+			self.locker.Unlock()
 			return
 		}
 	}
-	e := this.queue.PushBack(requ)
-	if this.rm {
-		this.rmKey[key] = e
+	e := self.queue.PushBack(requ)
+	if self.rm {
+		self.rmKey[key] = e
 	}
-	this.locker.Unlock()
+	self.locker.Unlock()
 }
 
-func (this *QueueScheduler) Poll() *robot.Request {
-	this.locker.Lock()
-	if this.queue.Len() <= 0 {
-		this.locker.Unlock()
+func (self *QueueScheduler) Poll() *robot.Request {
+	self.locker.Lock()
+	if self.queue.Len() <= 0 {
+		self.locker.Unlock()
 		return nil
 	}
-	e := this.queue.Front()
+	e := self.queue.Front()
 	requ := e.Value.(*robot.Request)
 	key := md5.Sum([]byte(requ.GetUrl()))
-	this.queue.Remove(e)
-	if this.rm {
-		delete(this.rmKey, key)
+	self.queue.Remove(e)
+	if self.rm {
+		delete(self.rmKey, key)
 	}
-	this.locker.Unlock()
+	self.locker.Unlock()
 	return requ
 }
 
-func (this *QueueScheduler) Count() int {
-	this.locker.Lock()
-	len := this.queue.Len()
-	this.locker.Unlock()
+func (self *QueueScheduler) Count() int {
+	self.locker.Lock()
+	len := self.queue.Len()
+	self.locker.Unlock()
 	return len
 }

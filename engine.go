@@ -1,8 +1,11 @@
-package robot
-
 /*
-爬虫模块
+Author: Aosen
+Data: 2016-01-18
+QQ: 316052486
+Desc: 爬虫引擎
 */
+
+package robot
 
 import (
 	"io/ioutil"
@@ -97,8 +100,7 @@ func NewSpider(options SpiderOptions) *Spider {
 }
 
 // Deal with one url and return the PageItems.
-func (self *Spider) Get(url string, respType string) *PageItems {
-	req := NewRequest(url, respType, "", "GET", "", nil, nil, nil, nil)
+func (self *Spider) Get(req *Request) *PageItems {
 	return self.GetByRequest(req)
 }
 
@@ -156,9 +158,8 @@ func (self *Spider) AddPipeline(p Pipeline) *Spider {
 }
 
 // Deal with several urls and return the PageItems slice.
-func (self *Spider) GetAll(urls []string, respType string) []*PageItems {
-	for _, u := range urls {
-		req := NewRequest(u, respType, "", "GET", "", nil, nil, nil, nil)
+func (self *Spider) GetAll(reqs []*Request) []*PageItems {
+	for _, req := range reqs {
 		self.AddRequest(req)
 	}
 
@@ -216,7 +217,7 @@ func (self *Spider) Run() {
 			}, req)
 		}
 		//关闭爬虫
-		self.close()
+		self.Close()
 		//释放爬虫池
 		self.rm.Free()
 	}()
@@ -224,11 +225,12 @@ func (self *Spider) Run() {
 	self.rm.Start()
 }
 
-func (self *Spider) close() {
+func (self *Spider) Close() {
 	//self.SetScheduler(NewQueueScheduler(false))
 	//self.SetDownloader(NewHttpDownloader())
 	self.pipelines = make([]Pipeline, 0)
 	self.exitWhenComplete = true
+	mlog.StraceInst().Println("stop crawl")
 }
 
 // core processer
@@ -260,6 +262,7 @@ func (self *Spider) pageProcess(req *Request) {
 	}
 
 	self.pageProcesser.Process(p)
+	//将targetRequests中的所有请求列表放入调度队列
 	for _, req := range p.GetTargetRequests() {
 		self.AddRequest(req)
 	}
@@ -344,48 +347,6 @@ func (self *Spider) SetSleepTime(sleeptype string, s uint, e uint) *Spider {
 	return self
 }
 
-func (self *Spider) AddUrl(url string, respType string) *Spider {
-	req := NewRequest(url, respType, "", "GET", "", nil, nil, nil, nil)
-	self.AddRequest(req)
-	return self
-}
-
-func (self *Spider) AddUrlEx(url string, respType string, headerFile string, proxyHost string) *Spider {
-	req := NewRequest(url, respType, "", "GET", "", nil, nil, nil, nil)
-	self.AddRequest(req.AddHeaderFile(headerFile).AddProxyHost(proxyHost))
-	return self
-}
-
-func (self *Spider) AddUrlWithHeaderFile(url string, respType string, headerFile string) *Spider {
-	req := NewRequestWithHeaderFile(url, respType, headerFile)
-	self.AddRequest(req)
-	return self
-}
-
-func (self *Spider) AddUrls(urls []string, respType string) *Spider {
-	for _, url := range urls {
-		req := NewRequest(url, respType, "", "GET", "", nil, nil, nil, nil)
-		self.AddRequest(req)
-	}
-	return self
-}
-
-func (self *Spider) AddUrlsWithHeaderFile(urls []string, respType string, headerFile string) *Spider {
-	for _, url := range urls {
-		req := NewRequestWithHeaderFile(url, respType, headerFile)
-		self.AddRequest(req)
-	}
-	return self
-}
-
-func (self *Spider) AddUrlsEx(urls []string, respType string, headerFile string, proxyHost string) *Spider {
-	for _, url := range urls {
-		req := NewRequest(url, respType, "", "GET", "", nil, nil, nil, nil)
-		self.AddRequest(req.AddHeaderFile(headerFile).AddProxyHost(proxyHost))
-	}
-	return self
-}
-
 // Request represents object waiting for being crawled.
 type Request struct {
 	Url string
@@ -415,46 +376,29 @@ type Request struct {
 	// If CheckRedirect returns an error, the Client's Get
 	// method returns both the previous Response.
 	// If CheckRedirect returns error.New("normal"), the error process after client.Do will ignore the error.
-	checkRedirect func(req *http.Request, via []*http.Request) error
+	CheckRedirect func(req *http.Request, via []*http.Request) error
 
 	Meta interface{}
+
+	//写垂直爬虫时会用到，增加回调函数，提供给页面处理方法调取
+	CallBack func(p *Page)
 }
 
-// NewRequest returns initialized Request object.
-// The respType is json, jsonp, html, text
-/*
-func NewRequestSimple(url string, respType string, urltag string) *Request {
-    return &Request{url:url, respType:respType}
-}
-*/
-
-func NewRequest(url string, respType string, urltag string, method string,
-	postdata string, header http.Header, cookies []*http.Cookie,
-	checkRedirect func(req *http.Request, via []*http.Request) error,
-	meta interface{}) *Request {
-	return &Request{url, respType, method, postdata, urltag, header, cookies, "", checkRedirect, meta}
-}
-
-func NewRequestWithProxy(url string, respType string, urltag string, method string,
-	postdata string, header http.Header, cookies []*http.Cookie, proxyHost string,
-	checkRedirect func(req *http.Request, via []*http.Request) error,
-	meta interface{}) *Request {
-	return &Request{url, respType, method, postdata, urltag, header, cookies, proxyHost, checkRedirect, meta}
-}
-
-func NewRequestWithHeaderFile(url string, respType string, headerFile string) *Request {
-	_, err := os.Stat(headerFile)
-	if err != nil {
-		//file is not exist , using default mode
-		return NewRequest(url, respType, "", "GET", "", nil, nil, nil, nil)
+func NewRequest(req *Request) *Request {
+	//主要做默认值设置与错误检测
+	if req.Url == "" {
+		mlog.LogInst().LogError("request url is nil")
 	}
-
-	h := readHeaderFromFile(headerFile)
-
-	return NewRequest(url, respType, "", "GET", "", h, nil, nil, nil)
+	if req.Method == "" || req.Method != "GET" || req.Method != "POST" || req.Method != "HEAD" || req.Method != "OPTIONS" || req.Method != "PUT" || req.Method != "DELETE" {
+		req.Method = "GET"
+	}
+	if req.RespType == "" || req.RespType != "html" || req.RespType != "json" || req.RespType != "jsonp" || req.RespType != "text" {
+		req.RespType = "html"
+	}
+	return req
 }
 
-func readHeaderFromFile(headerFile string) http.Header {
+func ReadHeaderFromFile(headerFile string) http.Header {
 	//read file , parse the header and cookies
 	b, err := ioutil.ReadFile(headerFile)
 	if err != nil {
@@ -487,7 +431,7 @@ func (self *Request) AddHeaderFile(headerFile string) *Request {
 	if err != nil {
 		return self
 	}
-	h := readHeaderFromFile(headerFile)
+	h := ReadHeaderFromFile(headerFile)
 	self.Header = h
 	return self
 }
@@ -495,6 +439,12 @@ func (self *Request) AddHeaderFile(headerFile string) *Request {
 // @host  http://localhost:8765/
 func (self *Request) AddProxyHost(host string) *Request {
 	self.ProxyHost = host
+	return self
+}
+
+//增加回调函数
+func (self *Request) AddCallBack(cb func(p *Page)) *Request {
+	self.CallBack = cb
 	return self
 }
 
@@ -531,11 +481,16 @@ func (self *Request) GetResponceType() string {
 }
 
 func (self *Request) GetRedirectFunc() func(req *http.Request, via []*http.Request) error {
-	return self.checkRedirect
+	return self.CheckRedirect
 }
 
 func (self *Request) GetMeta() interface{} {
 	return self.Meta
+}
+
+//获取回调函数
+func (self *Request) GetCallBack() func(*Page) {
+	return self.CallBack
 }
 
 // PageItems represents an entity save result parsed by PageProcesser and will be output at last.
@@ -622,7 +577,10 @@ type Page struct {
 
 // NewPage returns initialized Page object.
 func NewPage(req *Request) *Page {
-	return &Page{pItems: NewPageItems(req), req: req}
+	return &Page{
+		pItems: NewPageItems(req),
+		req:    req,
+	}
 }
 
 // SetStatus save status info about download process.
@@ -699,56 +657,15 @@ func (self *Page) GetUrlTag() string {
 }
 
 // AddTargetRequest adds one new Request waitting for crawl.
-func (self *Page) AddTargetRequest(url string, respType string) *Page {
-	self.targetRequests = append(self.targetRequests, NewRequest(url, respType, "", "GET", "", nil, nil, nil, nil))
+func (self *Page) AddTargetRequest(req *Request) *Page {
+	self.targetRequests = append(self.targetRequests, NewRequest(req))
 	return self
 }
 
 // AddTargetRequests adds new Requests waitting for crawl.
-func (self *Page) AddTargetRequests(urls []string, respType string) *Page {
-	for _, url := range urls {
-		self.AddTargetRequest(url, respType)
-	}
-	return self
-}
-
-// AddTargetRequestWithProxy adds one new Request waitting for crawl.
-func (self *Page) AddTargetRequestWithProxy(url string, respType string, proxyHost string) *Page {
-
-	self.targetRequests = append(self.targetRequests, NewRequestWithProxy(url, respType, "", "GET", "", nil, nil, proxyHost, nil, nil))
-	return self
-}
-
-// AddTargetRequestsWithProxy adds new Requests waitting for crawl.
-func (self *Page) AddTargetRequestsWithProxy(urls []string, respType string, proxyHost string) *Page {
-	for _, url := range urls {
-		self.AddTargetRequestWithProxy(url, respType, proxyHost)
-	}
-	return self
-}
-
-// AddTargetRequest adds one new Request with header file for waitting for crawl.
-func (self *Page) AddTargetRequestWithHeaderFile(url string, respType string, headerFile string) *Page {
-	self.targetRequests = append(self.targetRequests, NewRequestWithHeaderFile(url, respType, headerFile))
-	return self
-}
-
-// AddTargetRequest adds one new Request waitting for crawl.
-// The respType is "html" or "json" or "jsonp" or "text".
-// The urltag is name for marking url and distinguish different urls in PageProcesser and Pipeline.
-// The method is POST or GET.
-// The postdata is http body string.
-// The header is http header.
-// The cookies is http cookies.
-func (self *Page) AddTargetRequestWithParams(req *Request) *Page {
-	self.targetRequests = append(self.targetRequests, req)
-	return self
-}
-
-// AddTargetRequests adds new Requests waitting for crawl.
-func (self *Page) AddTargetRequestsWithParams(reqs []*Request) *Page {
+func (self *Page) AddTargetRequests(reqs []*Request) *Page {
 	for _, req := range reqs {
-		self.AddTargetRequestWithParams(req)
+		self.AddTargetRequest(NewRequest(req))
 	}
 	return self
 }

@@ -15,6 +15,20 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
+func initrequest(url string) *robot.Request {
+	return &robot.Request{
+		Url:      url,
+		RespType: "html",
+	}
+}
+
+func initrequests(urls []string) (reqs []*robot.Request) {
+	for _, url := range urls {
+		reqs = append(reqs, initrequest(url))
+	}
+	return
+}
+
 type MyProcessor struct {
 }
 
@@ -22,7 +36,7 @@ func NewMyProcesser() *MyProcessor {
 	return &MyProcessor{}
 }
 
-func (this *MyProcessor) Process(p *robot.Page) {
+func (self *MyProcessor) Process(p *robot.Page) {
 	if !p.IsSucc() {
 		mlog.LogInst().LogError(p.Errormsg())
 		return
@@ -66,16 +80,16 @@ func (this *MyProcessor) Process(p *robot.Page) {
 
 	})
 
-	p.AddTargetRequests(urls, "html")
+	p.AddTargetRequests(initrequests(urls))
 	p.AddField("test1", p.GetRequest().GetUrl())
 	p.AddField("test2", p.GetRequest().GetUrl())
 }
 
-func (this *MyProcessor) Finish() {
+func (self *MyProcessor) Finish() {
 
 }
 
-//mongo pipline 的例子，仅供参考，需要开发者自己实现
+//mongo pipeline 的例子，仅供参考，需要开发者自己实现
 type PipelineMongo struct {
 	session           *mgo.Session
 	url               string
@@ -141,7 +155,7 @@ func main() {
 		Downloader:    downloader.NewHttpDownloader(),
 		Scheduler:     scheduler.NewRedisScheduler(scheduleroptions),
 		Pipelines:     []robot.Pipeline{NewPipelineMongo(mongoUrl, mongoDB, mongoCollection)},
-		//设置资源管理器，协程池容量为10
+		//设置资源管理器，资源池容量为10
 		ResourceManage: resource.NewSpidersPool(10, nil),
 	}
 
@@ -155,7 +169,7 @@ func main() {
 		}
 	}
 	if init {
-		sp.AddUrl(start_url, "html")
+		sp.AddRequest(initrequest(start_url))
 		mlog.LogInst().LogInfo("重新开始爬")
 	} else {
 		mlog.LogInst().LogInfo("继续爬")

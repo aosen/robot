@@ -2,8 +2,15 @@
 Author: Aosen
 Data: 2016-01-15
 QQ: 316052486
-Desc: 爬取www.79xs.com的所有小说内容，一键式智能爬取及更新
+Desc:
+爬取www.79xs.com的所有小说内容，一键式智能爬取及更新
 将spider.conf配置文件放在可执行文件的同层
+爬虫先从主页www.79xs.com爬取, 提取分类目录并设置回调
+抓取分类目录中的小说目录，提取二级分类，小说标题，并设置小说简介回调
+抓取小说简介并设置章节回调
+抓取章节并设置小说内容回调
+抓取小说内容
+如果抓到与数据库中大量相同的url 则退出, 阀值 100
 */
 
 package main
@@ -23,8 +30,14 @@ import (
 )
 
 const (
-	baseurl string = "http://www.79xs.com"
+	baseurl  string = "http://www.79xs.com"
+	girl_url string = "/book/LC/165.aspx"
+	GIRL     string = "女生"
+	BOY      string = "男生"
 )
+
+//停止标志
+var stop chan bool = make(chan bool)
 
 func loadconf(path string) (settings map[string]string) {
 	//生成配置文件对象,加载配置文件
@@ -39,6 +52,10 @@ func initrequest(url string, meta map[string]string, cb func(*robot.Page)) *robo
 		Meta:     meta,
 		CallBack: cb,
 	}
+}
+
+func stopspider() {
+	close(stop)
 }
 
 //页面处理类
@@ -71,7 +88,11 @@ func (self *Www79xsComProcessor) mainParse(p *robot.Page) {
 	query := p.GetHtmlParser()
 	query.Find(".subnav ul li a").Each(func(i int, s *goquery.Selection) {
 		addr, _ := s.Attr("href")
-		p.AddTargetRequest(initrequest(baseurl+addr, map[string]string{}, self.urlListParse))
+		if addr == girl_url {
+			p.AddTargetRequest(initrequest(baseurl+addr, map[string]string{"first": GIRL}, self.urlListParse))
+		} else {
+			p.AddTargetRequest(initrequest(baseurl+addr, map[string]string{"first": BOY}, self.urlListParse))
+		}
 	})
 }
 
@@ -79,7 +100,9 @@ func (self *Www79xsComProcessor) mainParse(p *robot.Page) {
 func (self *Www79xsComProcessor) urlListParse(p *robot.Page) {
 	//开始解析页面
 	//query := p.GetHtmlParser()
-	log.Println("1111111111111111111111")
+	meta := p.GetRequest().GetMeta()
+	p.AddField("code", "0")
+	p.AddField("first", meta.(map[string]string)["first"])
 }
 
 func (self *Www79xsComProcessor) Finish() {
@@ -103,6 +126,17 @@ func NewPipelineMySQL(dbinfo string) *PipelineMySQL {
 }
 
 func (self *PipelineMySQL) Process(pageitems *robot.PageItems, task robot.Task) {
+	//如果code＝“0” 则调用处理一级分类函数
+	if code, ok := pageitems.GetItem("code"); ok {
+		switch code {
+		case "0":
+			self.firstProcess(pageitems, task)
+		}
+	}
+}
+
+func (self *PipelineMySQL) firstProcess(pageitems *robot.PageItems, task robot.Task) {
+	//接下来存储一级分类和二级分类
 }
 
 func main() {
@@ -129,5 +163,7 @@ func main() {
 	sp := robot.NewSpider(options)
 	//增加根url
 	sp.AddRequest(initrequest(start_url, nil, nil))
-	sp.Run()
+	go sp.Run()
+	<-stop
+	sp.Close()
 }

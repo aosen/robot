@@ -16,133 +16,22 @@ Desc:
 package main
 
 import (
-	"database/sql"
 	"log"
 
-	"github.com/PuerkitoBio/goquery"
-	"github.com/aosen/mlog"
 	"github.com/aosen/robot"
 	"github.com/aosen/robot/downloader"
+	"github.com/aosen/robot/example/www79xscom/pipeline"
+	"github.com/aosen/robot/example/www79xscom/process"
+	"github.com/aosen/robot/example/www79xscom/utils"
 	"github.com/aosen/robot/resource"
 	"github.com/aosen/robot/scheduler"
-	"github.com/aosen/utils"
 	_ "github.com/go-sql-driver/mysql"
 )
 
-const (
-	baseurl  string = "http://www.79xs.com"
-	girl_url string = "/book/LC/165.aspx"
-	GIRL     string = "女生"
-	BOY      string = "男生"
-)
-
-//停止标志
-var stop chan bool = make(chan bool)
-
-func loadconf(path string) (settings map[string]string) {
-	//生成配置文件对象,加载配置文件
-	config := utils.NewConfig().Load(path)
-	return config.GlobalContent()
-}
-
-func initrequest(url string, meta map[string]string, cb func(*robot.Page)) *robot.Request {
-	return &robot.Request{
-		Url:      url,
-		RespType: "html",
-		Meta:     meta,
-		CallBack: cb,
-	}
-}
-
-func stopspider() {
-	close(stop)
-}
-
-//页面处理类
-type Www79xsComProcessor struct {
-}
-
-func NewWww79xsComProcessor() *Www79xsComProcessor {
-	return &Www79xsComProcessor{}
-}
-
-func (self *Www79xsComProcessor) Process(p *robot.Page) {
-	//判断页面是否抓取成功
-	if !p.IsSucc() {
-		mlog.LogInst().LogError(p.Errormsg())
-		return
-	}
-
-	//如果callback为空，则说明是入口页面，否则直接执行对应callback
-	callback := p.GetRequest().GetCallBack()
-	if callback == nil {
-		self.mainParse(p)
-	} else {
-		callback(p)
-	}
-}
-
-//主页解析
-func (self *Www79xsComProcessor) mainParse(p *robot.Page) {
-	//开始解析页面
-	query := p.GetHtmlParser()
-	query.Find(".subnav ul li a").Each(func(i int, s *goquery.Selection) {
-		addr, _ := s.Attr("href")
-		if addr == girl_url {
-			p.AddTargetRequest(initrequest(baseurl+addr, map[string]string{"first": GIRL}, self.urlListParse))
-		} else {
-			p.AddTargetRequest(initrequest(baseurl+addr, map[string]string{"first": BOY}, self.urlListParse))
-		}
-	})
-}
-
-//分类列表解析
-func (self *Www79xsComProcessor) urlListParse(p *robot.Page) {
-	//开始解析页面
-	//query := p.GetHtmlParser()
-	meta := p.GetRequest().GetMeta()
-	p.AddField("code", "0")
-	p.AddField("first", meta.(map[string]string)["first"])
-}
-
-func (self *Www79xsComProcessor) Finish() {
-}
-
-//mysql pipeline
-type PipelineMySQL struct {
-	DB *sql.DB
-}
-
-func NewPipelineMySQL(dbinfo string) *PipelineMySQL {
-	db, _ := sql.Open("mysql", dbinfo)
-	db.SetMaxOpenConns(30)
-	db.SetMaxIdleConns(30)
-	if db.Ping() != nil {
-		log.Fatalf("connect mysql fail\n")
-	}
-	return &PipelineMySQL{
-		DB: db,
-	}
-}
-
-func (self *PipelineMySQL) Process(pageitems *robot.PageItems, task robot.Task) {
-	//如果code＝“0” 则调用处理一级分类函数
-	if code, ok := pageitems.GetItem("code"); ok {
-		switch code {
-		case "0":
-			self.firstProcess(pageitems, task)
-		}
-	}
-}
-
-func (self *PipelineMySQL) firstProcess(pageitems *robot.PageItems, task robot.Task) {
-	//接下来存储一级分类和二级分类
-}
-
 func main() {
-	start_url := baseurl
+	start_url := utils.BaseUrl
 	//加载配置文件
-	settings := loadconf("spider.conf")
+	settings := utils.LoadConf("conf/spider.conf")
 	//获取数据库连接信息
 	dbinfo, ok := settings["DBINFO"]
 	if !ok {
@@ -152,18 +41,18 @@ func main() {
 	//爬虫初始化
 	options := robot.SpiderOptions{
 		TaskName:      "79xs",
-		PageProcesser: NewWww79xsComProcessor(),
+		PageProcesser: process.NewWww79xsComProcessor(),
 		Downloader:    downloader.NewHttpDownloader(),
 		Scheduler:     scheduler.NewQueueScheduler(false),
-		Pipelines:     []robot.Pipeline{NewPipelineMySQL(dbinfo)},
+		Pipelines:     []robot.Pipeline{pipeline.NewPipelineMySQL(dbinfo)},
 		//设置资源管理器，资源池容量为10
-		ResourceManage: resource.NewSpidersPool(10, nil),
+		ResourceManage: resource.NewSpidersPool(20, nil),
 	}
 
 	sp := robot.NewSpider(options)
 	//增加根url
-	sp.AddRequest(initrequest(start_url, nil, nil))
+	sp.AddRequest(utils.InitRequest(start_url, nil, nil))
 	go sp.Run()
-	<-stop
+	<-utils.Stop
 	sp.Close()
 }

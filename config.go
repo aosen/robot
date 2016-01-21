@@ -2,13 +2,13 @@
 package robot
 
 import (
-	"github.com/aosen/goconfig"
-	"github.com/aosen/utils"
 	"os"
+
+	"github.com/aosen/goutils"
 )
 
 // Config is a config singleton object for one spider.
-var conf *goconfig.Config
+var conf *goutils.Config
 var path string
 
 // Configpath gets default config path like "WD/etc/main.conf".
@@ -28,8 +28,8 @@ func configpath() string {
 }
 
 // StartConf is used in Spider for initialization at first time.
-func StartConf(configFilePath string) *goconfig.Config {
-	if configFilePath != "" && !utils.IsFileExists(configFilePath) {
+func StartConf(configFilePath string) *goutils.Config {
+	if configFilePath != "" && !goutils.IsFileExists(configFilePath) {
 		panic("config path is not valiad:" + configFilePath)
 	}
 
@@ -38,12 +38,12 @@ func StartConf(configFilePath string) *goconfig.Config {
 }
 
 // Conf gets singleton instance of Config.
-func Conf() *goconfig.Config {
+func Conf() *goutils.Config {
 	if conf == nil {
 		if path == "" {
 			path = configpath()
 		}
-		conf = goconfig.NewConfig().Load(path)
+		conf = goutils.NewConfig().Load(path)
 	}
 	return conf
 }

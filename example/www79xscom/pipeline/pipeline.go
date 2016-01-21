@@ -12,8 +12,16 @@ import (
 	"time"
 
 	"github.com/aosen/robot"
+	"github.com/aosen/robot/example/www79xscom/utils"
 	"github.com/astaxie/beedb"
 )
+
+//系统配置表
+type System struct {
+	Id int    `PK`
+	K  string `orm:"size(50);unique"`
+	V  string `orm:"size(100)"`
+}
 
 //一级分类表
 type First struct {
@@ -25,7 +33,7 @@ type First struct {
 
 //二级分类表
 type Second struct {
-	Id         int
+	Id         int       `PK`
 	Secondname string    `orm:"size(20);unique"`
 	Updatetime time.Time `orm:"type(date)"`
 	Createtime time.Time `orm:"type(date)"`
@@ -33,7 +41,7 @@ type Second struct {
 
 //小说简介表
 type Novel struct {
-	Id           int
+	Id           int       `PK`
 	Title        string    `orm:"size(200)"`
 	Firstid      int       `orm:"index"`
 	Secondid     int       `orm:"index"`
@@ -48,7 +56,7 @@ type Novel struct {
 
 //小说内容表
 type Content struct {
-	Id            int
+	Id            int `PK`
 	Novelid       int
 	Title         string    `orm:"size(200);index"`
 	Firstid       int       `orm:"index"`
@@ -64,6 +72,8 @@ type Content struct {
 type PipelineMySQL struct {
 	DB  *sql.DB
 	ORM beedb.Model
+	//图片存储路径
+	ImageStore string
 }
 
 func NewPipelineMySQL(dbinfo string) *PipelineMySQL {
@@ -73,10 +83,16 @@ func NewPipelineMySQL(dbinfo string) *PipelineMySQL {
 	if db.Ping() != nil {
 		log.Fatal("连接数据库失败")
 	}
-	return &PipelineMySQL{
-		DB:  db,
-		ORM: beedb.New(db),
+	pm := new(PipelineMySQL)
+	pm.DB = db
+	pm.ORM = beedb.New(db)
+	system := &System{}
+	err := pm.ORM.Where("k=?", "imagestore").Find(system)
+	if err != nil {
+		log.Fatal("在mysql数据库system表中没有找到imagestore")
 	}
+	pm.ImageStore = system.V
+	return pm
 }
 
 func (self *PipelineMySQL) Process(pageitems *robot.PageItems, task robot.Task) {
@@ -84,7 +100,14 @@ func (self *PipelineMySQL) Process(pageitems *robot.PageItems, task robot.Task) 
 	if code, ok := pageitems.GetItem("code"); ok {
 		switch code {
 		case "0":
+			//处理一级分类
 			self.firstProcess(pageitems, task)
+		case "1":
+			//处理二级分类
+			self.secondProcess(pageitems, task)
+		case "2":
+			//下载图片
+			self.imgProcess(pageitems, task)
 		}
 	}
 }
@@ -102,5 +125,28 @@ func (self *PipelineMySQL) firstProcess(pageitems *robot.PageItems, task robot.T
 			first.Updatetime = time.Now()
 			self.ORM.Save(first)
 		}
+	}
+}
+
+//如果二级分类存在则略过，不存在存储
+func (self *PipelineMySQL) secondProcess(pageitems *robot.PageItems, task robot.Task) {
+	if secondname, ok := pageitems.GetItem("second"); ok {
+		second := &Second{}
+		err := self.ORM.Where("secondname=?", secondname).Find(second)
+		//如果数据不存在 则创建
+		if err != nil {
+			second.Secondname = secondname
+			second.Createtime = time.Now()
+			second.Updatetime = time.Now()
+			self.ORM.Save(second)
+		}
+	}
+}
+
+//下载图片
+func (self *PipelineMySQL) imgProcess(pageitems *robot.PageItems, task robot.Task) {
+	if img, ok := pageitems.GetItem("img"); ok {
+		filename, _ := utils.DownloadImage(img, self.ImageStore)
+		pageitems.AddItem("picture", filename)
 	}
 }

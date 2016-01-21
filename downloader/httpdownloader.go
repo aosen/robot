@@ -17,9 +17,9 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/aosen/goutils"
 	"github.com/aosen/mlog"
 	"github.com/aosen/robot"
-	"github.com/aosen/utils"
 	"github.com/bitly/go-simplejson"
 	"golang.org/x/net/html/charset"
 )
@@ -32,10 +32,14 @@ import (
 // The "text" content will save body plain text only.
 // The page result is saved in Page.
 type HttpDownloader struct {
+	//如果网页中存在不完整的content－type 则默认
+	DefaultContentType string
 }
 
-func NewHttpDownloader() *HttpDownloader {
-	return &HttpDownloader{}
+func NewHttpDownloader(ct string) *HttpDownloader {
+	return &HttpDownloader{
+		DefaultContentType: ct,
+	}
 }
 
 func (self *HttpDownloader) Download(req *robot.Request) *robot.Page {
@@ -112,24 +116,20 @@ func connectByHttpProxy(p *robot.Page, in_req *robot.Request) (*http.Response, e
 // Charset auto determine. Use golang.org/x/net/html/charset. Get page body and change it to utf-8
 // 自动转码
 func (self *HttpDownloader) changeCharsetEncodingAuto(contentTypeStr string, sor io.ReadCloser) string {
-	var err error
+	if len(strings.Split(contentTypeStr, " ")) < 2 {
+		contentTypeStr = self.DefaultContentType
+	}
 	destReader, err := charset.NewReader(sor, contentTypeStr)
-
 	if err != nil {
 		mlog.LogInst().LogError(err.Error())
 		destReader = sor
 	}
-
 	var sorbody []byte
-	if sorbody, err = ioutil.ReadAll(destReader); err != nil {
+	sorbody, err = ioutil.ReadAll(destReader)
+	if err != nil {
 		mlog.LogInst().LogError(err.Error())
-		// For gb2312, an error will be returned.
-		// Error like: simplifiedchinese: invalid GBK encoding
-		// return ""
 	}
-	//e,name,certain := charset.DetermineEncoding(sorbody,contentTypeStr)
 	bodystr := string(sorbody)
-
 	return bodystr
 }
 
@@ -141,24 +141,7 @@ func (self *HttpDownloader) changeCharsetEncodingAutoGzipSupport(contentTypeStr 
 		return ""
 	}
 	defer gzipReader.Close()
-	destReader, err := charset.NewReader(gzipReader, contentTypeStr)
-
-	if err != nil {
-		mlog.LogInst().LogError(err.Error())
-		destReader = sor
-	}
-
-	var sorbody []byte
-	if sorbody, err = ioutil.ReadAll(destReader); err != nil {
-		mlog.LogInst().LogError(err.Error())
-		// For gb2312, an error will be returned.
-		// Error like: simplifiedchinese: invalid GBK encoding
-		// return ""
-	}
-	//e,name,certain := charset.DetermineEncoding(sorbody,contentTypeStr)
-	bodystr := string(sorbody)
-
-	return bodystr
+	return self.changeCharsetEncodingAuto(contentTypeStr, gzipReader)
 }
 
 // Download file and change the charset of page charset.
@@ -186,9 +169,6 @@ func (self *HttpDownloader) downloadFile(p *robot.Page, req *robot.Request) (*ro
 	if err != nil {
 		return p, ""
 	}
-
-	//b, _ := ioutil.ReadAll(resp.Body)
-	//fmt.Printf("Resp body %v \r\n", string(b))
 
 	p.SetHeader(resp.Header)
 	p.SetCookies(resp.Cookies())
@@ -245,7 +225,7 @@ func (self *HttpDownloader) downloadJson(p *robot.Page, req *robot.Request) *rob
 	body = []byte(destbody)
 	mtype := req.GetResponceType()
 	if mtype == "jsonp" {
-		tmpstr := utils.JsonpToJson(destbody)
+		tmpstr := goutils.JsonpToJson(destbody)
 		body = []byte(tmpstr)
 	}
 

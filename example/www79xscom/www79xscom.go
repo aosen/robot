@@ -42,11 +42,11 @@ func main() {
 	options := robot.SpiderOptions{
 		TaskName:      "79xs",
 		PageProcesser: process.NewWww79xsComProcessor(),
-		Downloader:    downloader.NewHttpDownloader(),
+		Downloader:    downloader.NewHttpDownloader("text/html; charset=gb2312"),
 		Scheduler:     scheduler.NewQueueScheduler(false),
 		Pipelines:     []robot.Pipeline{pipeline.NewPipelineMySQL(dbinfo)},
-		//设置资源管理器，资源池容量为10
-		ResourceManage: resource.NewSpidersPool(20, nil),
+		//设置资源管理器，资源池容量为100
+		ResourceManage: resource.NewSpidersPool(100, nil),
 	}
 
 	sp := robot.NewSpider(options)

@@ -8,8 +8,8 @@ Desc: 页面处理类
 package process
 
 import (
-	"log"
 	"strconv"
+	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/aosen/mlog"
@@ -31,7 +31,6 @@ func (self *Www79xsComProcessor) Process(p *robot.Page) {
 		mlog.LogInst().LogError(p.Errormsg())
 		return
 	}
-	log.Println("0000000000")
 
 	//如果callback为空，则说明是入口页面，否则直接执行对应callback
 	callback := p.GetRequest().GetCallBack()
@@ -59,8 +58,6 @@ func (self *Www79xsComProcessor) mainParse(p *robot.Page) {
 //获取分类页面的url list，并解析
 func (self *Www79xsComProcessor) urlListParse(p *robot.Page) {
 	meta := p.GetRequest().GetMeta()
-	p.AddField("code", "0")
-	p.AddField("first", meta.(map[string]string)["first"])
 	//开始解析页面
 	query := p.GetHtmlParser()
 	//获取尾页addr
@@ -112,9 +109,6 @@ func (self *Www79xsComProcessor) classParse(p *robot.Page) {
 //解析小说详情页
 func (self *Www79xsComProcessor) introParse(p *robot.Page) {
 	meta := p.GetRequest().GetMeta().(map[string]string)
-	//添加二级分类
-	p.AddField("code", "1")
-	p.AddField("second", meta["second"])
 	//开始解析页面
 	query := p.GetHtmlParser()
 	intro := query.Find("#info h3 p").Eq(1).Text()
@@ -131,9 +125,6 @@ func (self *Www79xsComProcessor) introParse(p *robot.Page) {
 //小说章节解析
 func (self *Www79xsComProcessor) chaperParse(p *robot.Page) {
 	meta := p.GetRequest().GetMeta().(map[string]string)
-	//添加图片地址
-	p.AddField("code", "2")
-	p.AddField("img", meta["img"])
 	//开始解析页面
 	query := p.GetHtmlParser()
 	query.Find(".insert_list li").Each(func(i int, s *goquery.Selection) {
@@ -141,9 +132,25 @@ func (self *Www79xsComProcessor) chaperParse(p *robot.Page) {
 		tmp["chapter"] = strconv.Itoa(i)
 		tmp["subtitle"] = s.Find("strong a").Text()
 		addr, _ := s.Find("strong a").Attr("href")
-		tmp["contenturl"] = utils.BaseUrl + addr
-		log.Println(tmp["contenturl"])
+		tmp["contenturl"] = p.GetRequest().GetBaseUrl() + addr
+		//检测contenturl, 如果数据库中存在，则跳过本次抓取，如果不存在则将url加入调度队列
+		//这个需求有时间再做
+		p.AddTargetRequest(utils.InitRequest(tmp["contenturl"], tmp, self.contentParse))
 	})
+}
+
+//小说内容解析
+func (self *Www79xsComProcessor) contentParse(p *robot.Page) {
+	meta := p.GetRequest().GetMeta().(map[string]string)
+	//开始解析页面
+	query := p.GetHtmlParser()
+	html, _ := query.Find(".contentbox").Html()
+	meta["content"] = strings.Replace(strings.Replace(html, "<br/><br/>", "\n", -1), "<br/>", "\n", -1)
+	p.AddField("code", "0")
+	for k, v := range meta {
+		p.AddField(k, v)
+	}
+
 }
 
 func (self *Www79xsComProcessor) Finish() {

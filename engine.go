@@ -452,6 +452,18 @@ func (self *Request) GetUrl() string {
 	return self.Url
 }
 
+//获取URL路径
+//http://www.79xs.com/Html/Book/147/147144/Index.html
+//返回http://www.79xs.com/Html/Book/147/147144/
+func (self *Request) GetBaseUrl() string {
+	sl := strings.SplitAfter(self.Url, "/")
+	if len(sl) == 0 {
+		return ""
+	} else {
+		return strings.Join(sl[:len(sl)-1], "")
+	}
+}
+
 func (self *Request) GetUrlTag() string {
 	return self.Urltag
 }

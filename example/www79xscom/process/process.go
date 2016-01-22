@@ -8,6 +8,7 @@ Desc: 页面处理类
 package process
 
 import (
+	"log"
 	"strconv"
 	"strings"
 
@@ -66,8 +67,10 @@ func (self *Www79xsComProcessor) urlListParse(p *robot.Page) {
 	if ok {
 		//解析addr
 		kv := goutils.GetKVInRelaPath(lastaddr)
+		log.Println(lastaddr, ok, kv)
 		//url拼接
 		maxpage, _ := strconv.Atoi(kv["page"])
+		log.Println(maxpage)
 		for i := 1; i <= maxpage; i++ {
 			page := strconv.Itoa(i)
 			p.AddTargetRequest(utils.InitRequest(

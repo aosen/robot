@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/aosen/goutils"
 	"github.com/aosen/mlog"
 	"github.com/aosen/robot"
 	"github.com/aosen/robot/example/www79xscom/utils"
@@ -61,11 +62,9 @@ func (self *Www79xsComProcessor) urlListParse(p *robot.Page) {
 	//开始解析页面
 	query := p.GetHtmlParser()
 	//获取尾页addr
-	//lastaddr, ok := query.Find("tbody a").Last().Attr("href")
-	_, ok := query.Find("tbody a").Last().Attr("href")
+	lastaddr, ok := query.Find("tbody a").Last().Attr("href")
 	if ok {
 		//解析addr
-		/* 测试完成后将注释取消
 		kv := goutils.GetKVInRelaPath(lastaddr)
 		//url拼接
 		maxpage, _ := strconv.Atoi(kv["page"])
@@ -76,7 +75,6 @@ func (self *Www79xsComProcessor) urlListParse(p *robot.Page) {
 				meta.(map[string]string),
 				self.classParse))
 		}
-		*/
 	} else {
 		p.AddTargetRequest(utils.InitRequest(p.GetRequest().GetUrl(), meta.(map[string]string), self.classParse))
 	}
@@ -135,7 +133,9 @@ func (self *Www79xsComProcessor) chaperParse(p *robot.Page) {
 		tmp["contenturl"] = p.GetRequest().GetBaseUrl() + addr
 		//检测contenturl, 如果数据库中存在，则跳过本次抓取，如果不存在则将url加入调度队列
 		//这个需求有时间再做
-		p.AddTargetRequest(utils.InitRequest(tmp["contenturl"], tmp, self.contentParse))
+		if len(tmp["subtitle"]) != 0 {
+			p.AddTargetRequest(utils.InitRequest(tmp["contenturl"], tmp, self.contentParse))
+		}
 	})
 }
 

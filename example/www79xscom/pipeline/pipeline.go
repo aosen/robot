@@ -96,7 +96,6 @@ func (self *PipelineMySQL) Process(pageitems *robot.PageItems, task robot.Task) 
 		picname := self.imgProcess(pageitems, task)
 		if novelid, err := self.novelProcess(pageitems, task, firstid, secondid, picname); err == nil {
 			self.contentProcess(pageitems, task, novelid, firstid, secondid)
-			log.Println(firstid, secondid, picname, novelid)
 		} else {
 			log.Println(err.Error())
 		}

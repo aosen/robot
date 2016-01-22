@@ -46,7 +46,7 @@ func main() {
 		Scheduler:     scheduler.NewQueueScheduler(false),
 		Pipelines:     []robot.Pipeline{pipeline.NewPipelineMySQL(dbinfo)},
 		//设置资源管理器，资源池容量为100
-		ResourceManage: resource.NewSpidersPool(100, nil),
+		ResourceManage: resource.NewSpidersPool(20, nil),
 	}
 
 	sp := robot.NewSpider(options)

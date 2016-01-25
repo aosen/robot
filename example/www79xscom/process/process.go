@@ -67,11 +67,8 @@ func (self *Www79xsComProcessor) urlListParse(p *robot.Page) {
 		//解析addr
 		kv := goutils.GetKVInRelaPath(lastaddr)
 		//url拼接
-		maxpage, _ := strconv.Atoi(kv["page"])
-		p.AddTargetRequest(utils.InitRequest(
-			"http://www.79xs.com/Book/ShowBookList.aspx?tclassid=8&page=1",
-			meta.(map[string]string),
-			self.classParse))
+		//maxpage, _ := strconv.Atoi(kv["page"])
+		maxpage := 1
 		for i := 1; i <= maxpage; i++ {
 			page := strconv.Itoa(i)
 			p.AddTargetRequest(utils.InitRequest(

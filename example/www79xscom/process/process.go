@@ -67,8 +67,7 @@ func (self *Www79xsComProcessor) urlListParse(p *robot.Page) {
 		//解析addr
 		kv := goutils.GetKVInRelaPath(lastaddr)
 		//url拼接
-		//maxpage, _ := strconv.Atoi(kv["page"])
-		maxpage := 1
+		maxpage, _ := strconv.Atoi(kv["page"])
 		for i := 1; i <= maxpage; i++ {
 			page := strconv.Itoa(i)
 			p.AddTargetRequest(utils.InitRequest(

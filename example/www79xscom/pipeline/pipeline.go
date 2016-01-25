@@ -181,5 +181,8 @@ func (self *PipelineMySQL) contentProcess(pageitems *robot.PageItems, task robot
 		Createtime:    time.Now(),
 	}
 	//如果数据不存在 则创建
-	o.ReadOrCreate(content, "contentsource")
+	_, _, err := o.ReadOrCreate(content, "contentsource")
+	if err == nil {
+		log.Println("创建content成功 subtitle:", items["subtitle"])
+	}
 }

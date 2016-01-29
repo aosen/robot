@@ -22,13 +22,15 @@ import (
 	"github.com/aosen/robot/downloader"
 	"github.com/aosen/robot/example/www79xscom/pipeline"
 	"github.com/aosen/robot/example/www79xscom/process"
+	//"github.com/aosen/robot/scheduler"
+	"github.com/aosen/robot/example/www79xscom/scheduler"
 	"github.com/aosen/robot/example/www79xscom/utils"
 	"github.com/aosen/robot/resource"
-	"github.com/aosen/robot/scheduler"
 	_ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
+	spidername := "79xs"
 	start_url := utils.BaseUrl
 	//加载配置文件
 	settings := utils.LoadConf("conf/spider.conf")
@@ -40,18 +42,21 @@ func main() {
 
 	//爬虫初始化
 	options := robot.SpiderOptions{
-		TaskName:      "79xs",
+		TaskName:      spidername,
 		PageProcesser: process.NewWww79xsComProcessor(),
 		Downloader:    downloader.NewHttpDownloader("text/html; charset=gb2312"),
-		Scheduler:     scheduler.NewQueueScheduler(false),
-		Pipelines:     []robot.Pipeline{pipeline.NewPipelineMySQL(dbinfo)},
+		Scheduler:     scheduler.NewMysqlScheduler(spidername, dbinfo),
+		//Scheduler: scheduler.NewQueueScheduler(false),
+		Pipelines: []robot.Pipeline{pipeline.NewPipelineMySQL(dbinfo)},
 		//设置资源管理器，资源池容量为100
 		ResourceManage: resource.NewSpidersPool(100, nil),
 	}
 
 	sp := robot.NewSpider(options)
 	//增加根url
-	sp.AddRequest(utils.InitRequest(start_url, nil, nil))
+	sp.AddRequest(utils.InitRequest(start_url, map[string]string{
+		"handler": "mainParse",
+	}))
 	go sp.Run()
 	<-utils.Stop
 	sp.Close()

@@ -33,12 +33,11 @@ func LoadConf(path string) (settings map[string]string) {
 	return config.GlobalContent()
 }
 
-func InitRequest(url string, meta map[string]string, cb func(*robot.Page)) *robot.Request {
+func InitRequest(url string, meta interface{}) *robot.Request {
 	return &robot.Request{
 		Url:      url,
 		RespType: "html",
 		Meta:     meta,
-		CallBack: cb,
 	}
 }
 
@@ -47,8 +46,8 @@ func Stopspider() {
 }
 
 //map[string]string 拷贝
-func MapCopy(src map[string]string) map[string]string {
-	dest := make(map[string]string)
+func MapCopy(src map[string]interface{}) map[string]interface{} {
+	dest := make(map[string]interface{})
 	for k, v := range src {
 		dest[k] = v
 	}

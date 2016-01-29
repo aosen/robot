@@ -152,7 +152,7 @@ func main() {
 	options := robot.SpiderOptions{
 		TaskName:      "mgospider",
 		PageProcesser: NewMyProcesser(),
-		Downloader:    downloader.NewHttpDownloader(),
+		Downloader:    downloader.NewHttpDownloader("text/html; charset=gb2312"),
 		Scheduler:     scheduler.NewRedisScheduler(scheduleroptions),
 		Pipelines:     []robot.Pipeline{NewPipelineMongo(mongoUrl, mongoDB, mongoCollection)},
 		//设置资源管理器，资源池容量为10

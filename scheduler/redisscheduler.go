@@ -9,8 +9,8 @@ package scheduler
 
 import (
 	"encoding/json"
+	"log"
 
-	"github.com/aosen/mlog"
 	"github.com/aosen/robot"
 	"github.com/garyburd/redigo/redis"
 )
@@ -69,7 +69,7 @@ func (self *RedisScheduler) newConn() (c redis.Conn, err error) {
 func (self *RedisScheduler) Push(requ *robot.Request) {
 	requJson, err := json.Marshal(requ)
 	if err != nil {
-		mlog.LogInst().LogError("RedisScheduler Push Error: " + err.Error())
+		log.Println("RedisScheduler Push Error: " + err.Error())
 		return
 	}
 
@@ -77,13 +77,13 @@ func (self *RedisScheduler) Push(requ *robot.Request) {
 	defer conn.Close()
 
 	if err != nil {
-		mlog.LogInst().LogError("RedisScheduler Push Error: " + err.Error())
+		log.Println("RedisScheduler Push Error: " + err.Error())
 		return
 	}
 	if self.forbiddenDuplicateUrl {
 		urlExist, err := conn.Do("HGET", self.urlList, requ.GetUrl())
 		if err != nil {
-			mlog.LogInst().LogError("RedisScheduler Push Error: " + err.Error())
+			log.Println("RedisScheduler Push Error: " + err.Error())
 			return
 		}
 		if urlExist != nil {
@@ -92,14 +92,14 @@ func (self *RedisScheduler) Push(requ *robot.Request) {
 		conn.Do("MULTI")
 		_, err = conn.Do("HSET", self.urlList, requ.GetUrl(), 1)
 		if err != nil {
-			mlog.LogInst().LogError("RedisScheduler Push Error: " + err.Error())
+			log.Println("RedisScheduler Push Error: " + err.Error())
 			conn.Do("DISCARD")
 			return
 		}
 	}
 	_, err = conn.Do("RPUSH", self.requestList, requJson)
 	if err != nil {
-		mlog.LogInst().LogError("RedisScheduler Push Error: " + err.Error())
+		log.Println("RedisScheduler Push Error: " + err.Error())
 		if self.forbiddenDuplicateUrl {
 			conn.Do("DISCARD")
 		}
@@ -120,12 +120,12 @@ func (self *RedisScheduler) Poll() *robot.Request {
 		return nil
 	}
 	if length <= 0 {
-		mlog.LogInst().LogError("RedisScheduler Poll length 0")
+		log.Println("RedisScheduler Poll length 0")
 		return nil
 	}
 	buf, err := conn.Do("LPOP", self.requestList)
 	if err != nil {
-		mlog.LogInst().LogError("RedisScheduler Poll Error: " + err.Error())
+		log.Println("RedisScheduler Poll Error: " + err.Error())
 		return nil
 	}
 
@@ -133,7 +133,7 @@ func (self *RedisScheduler) Poll() *robot.Request {
 
 	err = json.Unmarshal(buf.([]byte), requ)
 	if err != nil {
-		mlog.LogInst().LogError("RedisScheduler Poll Error: " + err.Error())
+		log.Println("RedisScheduler Poll Error: " + err.Error())
 		return nil
 	}
 
@@ -157,7 +157,7 @@ func (self *RedisScheduler) count() (int, error) {
 	defer conn.Close()
 	length, err := conn.Do("LLEN", self.requestList)
 	if err != nil {
-		mlog.LogInst().LogError("RedisScheduler Count Error: " + err.Error())
+		log.Println("RedisScheduler Count Error: " + err.Error())
 		return 0, err
 	}
 	return int(length.(int64)), nil

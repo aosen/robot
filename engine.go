@@ -209,11 +209,10 @@ func (self *Spider) Run() {
 				break
 			} else if req == nil {
 				time.Sleep(500 * time.Millisecond)
-				//mlog.StraceInst().Println("scheduler is empty")
 				continue
 			}
 			self.rm.AddTask(func(req *Request) {
-				mlog.StraceInst().Println("start crawl : " + req.GetUrl() + " urls:" + strconv.Itoa(self.scheduler.Count()))
+				log.Println("start crawl : " + req.GetUrl() + " urls:" + strconv.Itoa(self.scheduler.Count()))
 				self.pageProcess(req)
 			}, req)
 		}
@@ -373,16 +372,7 @@ type Request struct {
 	//proxy host   example='localhost:80'
 	ProxyHost string
 
-	// Redirect function for downloader used in http.Client
-	// If CheckRedirect returns an error, the Client's Get
-	// method returns both the previous Response.
-	// If CheckRedirect returns error.New("normal"), the error process after client.Do will ignore the error.
-	CheckRedirect func(req *http.Request, via []*http.Request) error
-
 	Meta interface{}
-
-	//写垂直爬虫时会用到，增加回调函数，提供给页面处理方法调取
-	CallBack func(p *Page)
 }
 
 func NewRequest(req *Request) *Request {
@@ -443,12 +433,6 @@ func (self *Request) AddProxyHost(host string) *Request {
 	return self
 }
 
-//增加回调函数
-func (self *Request) AddCallBack(cb func(p *Page)) *Request {
-	self.CallBack = cb
-	return self
-}
-
 func (self *Request) GetUrl() string {
 	return self.Url
 }
@@ -493,17 +477,8 @@ func (self *Request) GetResponceType() string {
 	return self.RespType
 }
 
-func (self *Request) GetRedirectFunc() func(req *http.Request, via []*http.Request) error {
-	return self.CheckRedirect
-}
-
 func (self *Request) GetMeta() interface{} {
 	return self.Meta
-}
-
-//获取回调函数
-func (self *Request) GetCallBack() func(*Page) {
-	return self.CallBack
 }
 
 // PageItems represents an entity save result parsed by PageProcesser and will be output at last.

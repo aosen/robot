@@ -63,9 +63,7 @@ func (self *HttpDownloader) Download(req *robot.Request) *robot.Page {
 
 // choose http GET/method to download
 func connectByHttp(p *robot.Page, req *robot.Request) (*http.Response, error) {
-	client := &http.Client{
-		CheckRedirect: req.GetRedirectFunc(),
-	}
+	client := &http.Client{}
 
 	httpreq, err := http.NewRequest(req.GetMethod(), req.GetUrl(), strings.NewReader(req.GetPostdata()))
 	if header := req.GetHeader(); header != nil {

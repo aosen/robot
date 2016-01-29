@@ -150,7 +150,6 @@ func (self *Www79xsComProcessor) contentParse(p *robot.Page) {
 	for k, v := range meta {
 		p.AddField(k, v)
 	}
-
 }
 
 func (self *Www79xsComProcessor) Finish() {

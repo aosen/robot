@@ -22,10 +22,9 @@ import (
 	"github.com/aosen/robot/downloader"
 	"github.com/aosen/robot/example/www79xscom/pipeline"
 	"github.com/aosen/robot/example/www79xscom/process"
-	//"github.com/aosen/robot/scheduler"
-	"github.com/aosen/robot/example/www79xscom/scheduler"
 	"github.com/aosen/robot/example/www79xscom/utils"
 	"github.com/aosen/robot/resource"
+	"github.com/aosen/robot/scheduler"
 	_ "github.com/go-sql-driver/mysql"
 )
 

@@ -114,6 +114,8 @@ func (self *PipelineMySQL) firstProcess(pageitems *robot.PageItems, task robot.T
 		}
 		if _, id, err := o.ReadOrCreate(first, "firstname"); err == nil {
 			return id
+		} else {
+			log.Println(err.Error())
 		}
 
 	}
@@ -132,6 +134,8 @@ func (self *PipelineMySQL) secondProcess(pageitems *robot.PageItems, task robot.
 		//如果数据不存在 则创建
 		if _, id, err := o.ReadOrCreate(second, "secondname"); err == nil {
 			return id
+		} else {
+			log.Println(err.Error())
 		}
 	}
 	return -1

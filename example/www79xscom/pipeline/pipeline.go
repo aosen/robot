@@ -162,6 +162,7 @@ func (self *PipelineMySQL) novelProcess(pageitems *robot.PageItems, task robot.T
 	}
 	//如果数据不存在 则创建
 	_, id, err := o.ReadOrCreate(novel, "novelsource")
+	log.Println("创建小说数据完成")
 	return id, err
 }
 
@@ -185,4 +186,5 @@ func (self *PipelineMySQL) contentProcess(pageitems *robot.PageItems, task robot
 	if err == nil {
 		log.Println("创建content成功 subtitle:", items["subtitle"])
 	}
+	log.Println("创建小说内容完成")
 }

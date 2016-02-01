@@ -10,6 +10,7 @@ package scheduler
 import (
 	"encoding/json"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/aosen/robot"
@@ -29,11 +30,13 @@ type MysqlScheduler struct {
 	//爬虫名称
 	name   string
 	dbinfo string
+	locker *sync.Mutex
 }
 
 func NewMysqlScheduler(name, dbinfo string) *MysqlScheduler {
 	my := &MysqlScheduler{
-		name: name,
+		name:   name,
+		locker: new(sync.Mutex),
 	}
 	my = my.Init(dbinfo)
 	return my
@@ -47,6 +50,8 @@ func (self *MysqlScheduler) Init(dbinfo string) *MysqlScheduler {
 }
 
 func (self *MysqlScheduler) Push(requ *robot.Request) {
+	self.locker.Lock()
+	defer self.locker.Unlock()
 	requJson, err := json.Marshal(requ)
 	if err != nil {
 		log.Println("Scheduler Push Error: " + err.Error())
@@ -66,6 +71,8 @@ func (self *MysqlScheduler) Push(requ *robot.Request) {
 }
 
 func (self *MysqlScheduler) Poll() *robot.Request {
+	self.locker.Lock()
+	defer self.locker.Unlock()
 	o := orm.NewOrm()
 	o.Using("scheduler")
 	req := &Requestlist{}
@@ -80,10 +87,13 @@ func (self *MysqlScheduler) Poll() *robot.Request {
 		//log.Printf("Not row found")
 		return nil
 	}
+	log.Println("删除数据")
 	//删除数据
-	if _, err := o.Delete(&Requestlist{Id: req.Id}); err != nil {
+	if _, err := o.Raw("DELETE FROM requestlist WHERE id = ?", req.Id).Exec(); err != nil {
+		//if _, err := o.Delete(&Requestlist{Id: req.Id}); err != nil {
 		log.Println("Delete data error:" + err.Error())
 	}
+	log.Println("删除数据完成")
 
 	r := &robot.Request{}
 	err = json.Unmarshal([]byte(req.Requ), r)
@@ -95,6 +105,8 @@ func (self *MysqlScheduler) Poll() *robot.Request {
 }
 
 func (self *MysqlScheduler) Count() int {
+	self.locker.Lock()
+	defer self.locker.Unlock()
 	o := orm.NewOrm()
 	o.Using("scheduler")
 	cnt, err := o.QueryTable("requestlist").Filter("name", self.name).Count()

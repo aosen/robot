@@ -17,6 +17,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/aosen/robot"
 	"github.com/aosen/robot/downloader"
@@ -52,10 +53,24 @@ func main() {
 	}
 
 	sp := robot.NewSpider(options)
-	//增加根url
-	sp.AddRequest(utils.InitRequest(start_url, map[string]string{
-		"handler": "mainParse",
-	}))
+
+	init := false
+	for _, arg := range os.Args {
+		if arg == "--init" {
+			init = true
+			break
+		}
+	}
+
+	if init {
+		//增加根url
+		sp.AddRequest(utils.InitRequest(start_url, map[string]string{
+			"handler": "mainParse",
+		}))
+		log.Println("重新开始爬")
+	} else {
+		log.Println("继续爬")
+	}
 	go sp.Run()
 	<-utils.Stop
 	sp.Close()

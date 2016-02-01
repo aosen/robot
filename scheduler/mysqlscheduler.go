@@ -87,13 +87,11 @@ func (self *MysqlScheduler) Poll() *robot.Request {
 		//log.Printf("Not row found")
 		return nil
 	}
-	log.Println("删除数据")
 	//删除数据
 	if _, err := o.Raw("DELETE FROM requestlist WHERE id = ?", req.Id).Exec(); err != nil {
 		//if _, err := o.Delete(&Requestlist{Id: req.Id}); err != nil {
 		log.Println("Delete data error:" + err.Error())
 	}
-	log.Println("删除数据完成")
 
 	r := &robot.Request{}
 	err = json.Unmarshal([]byte(req.Requ), r)

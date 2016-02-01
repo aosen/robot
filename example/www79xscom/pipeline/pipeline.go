@@ -92,7 +92,13 @@ func NewPipelineMySQL(dbinfo string) *PipelineMySQL {
 func (self *PipelineMySQL) Process(pageitems *robot.PageItems, task robot.Task) {
 	if code, ok := pageitems.GetItem("code"); ok && code == "0" {
 		firstid := self.firstProcess(pageitems, task)
+		if firstid == -1 {
+			return
+		}
 		secondid := self.secondProcess(pageitems, task)
+		if secondid == -1 {
+			return
+		}
 		picname := self.imgProcess(pageitems, task)
 		if novelid, err := self.novelProcess(pageitems, task, firstid, secondid, picname); err == nil {
 			self.contentProcess(pageitems, task, novelid, firstid, secondid)
@@ -115,7 +121,7 @@ func (self *PipelineMySQL) firstProcess(pageitems *robot.PageItems, task robot.T
 		if _, id, err := o.ReadOrCreate(first, "firstname"); err == nil {
 			return id
 		} else {
-			log.Println(err.Error())
+			log.Println("create firstname fail " + err.Error())
 		}
 
 	}
@@ -135,7 +141,7 @@ func (self *PipelineMySQL) secondProcess(pageitems *robot.PageItems, task robot.
 		if _, id, err := o.ReadOrCreate(second, "secondname"); err == nil {
 			return id
 		} else {
-			log.Println(err.Error())
+			log.Println("create secondname fail " + err.Error())
 		}
 	}
 	return -1

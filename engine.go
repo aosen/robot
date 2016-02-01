@@ -13,7 +13,6 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -212,7 +211,7 @@ func (self *Spider) Run() {
 				continue
 			}
 			self.rm.AddTask(func(req *Request) {
-				log.Println("start crawl : " + req.GetUrl() + " urls:" + strconv.Itoa(self.scheduler.Count()))
+				log.Println("start crawl : " + req.GetUrl())
 				self.pageProcess(req)
 			}, req)
 		}

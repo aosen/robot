@@ -18,7 +18,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/aosen/mlog"
-	"github.com/bitly/go-simplejson"
 )
 
 type Spider struct {
@@ -379,10 +378,10 @@ func NewRequest(req *Request) *Request {
 	if req.Url == "" {
 		mlog.LogInst().LogError("request url is nil")
 	}
-	if req.Method == "" || req.Method != "GET" || req.Method != "POST" || req.Method != "HEAD" || req.Method != "OPTIONS" || req.Method != "PUT" || req.Method != "DELETE" {
+	if req.Method == "" || req.Method != "GET" && req.Method != "POST" && req.Method != "HEAD" && req.Method != "OPTIONS" && req.Method != "PUT" && req.Method != "DELETE" {
 		req.Method = "GET"
 	}
-	if req.RespType == "" || req.RespType != "html" || req.RespType != "json" || req.RespType != "jsonp" || req.RespType != "text" {
+	if req.RespType == "" || req.RespType != "html" && req.RespType != "json" && req.RespType != "jsonp" && req.RespType != "text" {
 		req.RespType = "html"
 	}
 	return req
